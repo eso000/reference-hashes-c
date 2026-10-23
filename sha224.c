@@ -124,23 +124,18 @@ uint8_t* sha224(uint8_t* message, int size)
 
 
     
-    uint64_t ml = (uint64_t)(size*8);
+    uint64_t ml = (uint64_t)size * 8;
     
-    int left = (size+8)%64;
-    if (left)
-        left = 64 -left;
+    int left = 64 - (size+8)%64;
 
-    uint8_t *_temp = (uint8_t*)realloc(message, (size+8+left) * sizeof(uint8_t));
+    uint8_t *_temp = (uint8_t*)malloc((size+8+left) * sizeof(uint8_t));
     if (_temp == NULL)
         return NULL;
+    memcpy(_temp, message, size);
     message = _temp;
 
-    if (left)
-    {
-		message[size] = 0x80;
-        
-        memset(message+size+1,0,left-1);
-    }
+    message[size] = 0x80;
+    memset(message+size+1,0,left-1);
     message[size+left+0] = (ml>>56);
     message[size+left+1] = (uint8_t)(ml>>48);
     message[size+left+2] = (uint8_t)(ml>>40);
@@ -152,7 +147,7 @@ uint8_t* sha224(uint8_t* message, int size)
 
     uint32_t  w[80];
 
-    for (uint8_t *p = &message[0]; p< &message[0]+size+8; p=p+64)
+    for (uint8_t *p = &message[0]; p< &message[0]+size+left+8; p=p+64)
     {               
         
         w[ 0] = (*(p   )<<24)|(*(p+ 1)<<16)|(*(p+ 2)<<8)|(*(p+ 3)); 
@@ -230,6 +225,7 @@ uint8_t* sha224(uint8_t* message, int size)
     v[26] = (uint8_t)(h6>> 8);
     v[27] = (uint8_t)(h6    );
 
+    free(message);
     return &v[0];       
 }
 
@@ -242,12 +238,14 @@ int main(int argc, char const *argv[])
     v[1] = 0x62;
     v[2] = 0x63;
      
-    v = sha224(v, 3);
+    uint8_t* digest = sha224(v, 3);
 
-    for (uint8_t *i = &v[0]; i < &v[0]+28; ++i)
+    for (uint8_t *i = &digest[0]; i < &digest[0]+28; ++i)
         printf("%.2x", *i);
     printf("\n");
 
+    free(digest);
+    free(v);
 
     return 0;
 }

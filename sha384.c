@@ -148,25 +148,20 @@ uint8_t* sha384(uint8_t* message, int size)
         0x431d67c49c100d4c, 0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817};
 
     
-    uint64_t ml = (uint64_t)(size*8);
+    uint64_t ml = (uint64_t)size * 8;
     
-    int left = (size+16)%128;
-    if (left)
-        left = 128 -left;
+    int left = 128 - (size+16)%128;
 
-    uint8_t *_temp = (uint8_t*)realloc(message, (size+16+left) * sizeof(uint8_t));
+    uint8_t *_temp = (uint8_t*)malloc((size+16+left) * sizeof(uint8_t));
 
     if (_temp == NULL)
         return NULL;
 
+    memcpy(_temp, message, size);
     message = _temp;
 
-    if (left)
-    {
-		message[size] = 0x80;
-        
-        memset(message+size+1,0,left-1);
-    }
+    message[size] = 0x80;
+    memset(message+size+1,0,left-1);
 
     message[size+left+ 0] = 0; 
     message[size+left+ 1] = 0; 
@@ -189,7 +184,7 @@ uint8_t* sha384(uint8_t* message, int size)
 
     uint64_t  w[80];
 
-    for (uint8_t *p = &message[0]; p< &message[0]+size+16; p=p+128)
+    for (uint8_t *p = &message[0]; p< &message[0]+size+left+16; p=p+128)
     {               
         w[ 0]= ((uint64_t)*(p    )<<56)|((uint64_t)*(p+  1)<<48)|((uint64_t)*(p+  2)<<40)|((uint64_t)*(p+  3)<<32)|((uint64_t)*(p+  4)<<24)|((uint64_t)*(p+  5)<<16)|((uint64_t)*(p+  6)<<8)|(uint64_t)*(p+  7) ;
         w[ 1]= ((uint64_t)*(p+  8)<<56)|((uint64_t)*(p+  9)<<48)|((uint64_t)*(p+ 10)<<40)|((uint64_t)*(p+ 11)<<32)|((uint64_t)*(p+ 12)<<24)|((uint64_t)*(p+ 13)<<16)|((uint64_t)*(p+ 14)<<8)|(uint64_t)*(p+ 15) ;
@@ -229,7 +224,7 @@ uint8_t* sha384(uint8_t* message, int size)
 
     }
 
-    uint8_t *v= (uint8_t*)malloc(47 * sizeof(uint8_t));
+    uint8_t *v= (uint8_t*)malloc(48 * sizeof(uint8_t));
     
     v[ 0] = (uint8_t)(h0>>56);
     v[ 1] = (uint8_t)(h0>>48);
@@ -240,7 +235,7 @@ uint8_t* sha384(uint8_t* message, int size)
     v[ 6] = (uint8_t)(h0>> 8);
     v[ 7] = (uint8_t)(h0    );
 
-    v[ 8] = (uint8_t)(h1>>52);
+    v[ 8] = (uint8_t)(h1>>56);
     v[ 9] = (uint8_t)(h1>>48);
     v[10] = (uint8_t)(h1>>40);
     v[11] = (uint8_t)(h1>>32);
@@ -249,7 +244,7 @@ uint8_t* sha384(uint8_t* message, int size)
     v[14] = (uint8_t)(h1>> 8);
     v[15] = (uint8_t)(h1    );
     
-    v[16] = (uint8_t)(h2>>52);
+    v[16] = (uint8_t)(h2>>56);
     v[17] = (uint8_t)(h2>>48);
     v[18] = (uint8_t)(h2>>40);
     v[19] = (uint8_t)(h2>>32);
@@ -258,7 +253,7 @@ uint8_t* sha384(uint8_t* message, int size)
     v[22] = (uint8_t)(h2>> 8);
     v[23] = (uint8_t)(h2    );
 
-    v[24] = (uint8_t)(h3>>52);
+    v[24] = (uint8_t)(h3>>56);
     v[25] = (uint8_t)(h3>>48);
     v[26] = (uint8_t)(h3>>40);
     v[27] = (uint8_t)(h3>>32);
@@ -267,7 +262,7 @@ uint8_t* sha384(uint8_t* message, int size)
     v[30] = (uint8_t)(h3>> 8);
     v[31] = (uint8_t)(h3    );
 
-    v[32] = (uint8_t)(h4>>52);
+    v[32] = (uint8_t)(h4>>56);
     v[33] = (uint8_t)(h4>>48);
     v[34] = (uint8_t)(h4>>40);
     v[35] = (uint8_t)(h4>>32);
@@ -276,7 +271,7 @@ uint8_t* sha384(uint8_t* message, int size)
     v[38] = (uint8_t)(h4>> 8);
     v[39] = (uint8_t)(h4    );
 
-    v[40] = (uint8_t)(h5>>52);
+    v[40] = (uint8_t)(h5>>56);
     v[41] = (uint8_t)(h5>>48);
     v[42] = (uint8_t)(h5>>40);
     v[43] = (uint8_t)(h5>>32);
@@ -285,12 +280,13 @@ uint8_t* sha384(uint8_t* message, int size)
     v[46] = (uint8_t)(h5>> 8);
     v[47] = (uint8_t)(h5    );
 
+    free(message);
     return v;
 }
 
 int main(int argc, char const *argv[])
 {   
-    //616263 => a9993e364706816aba3e25717850c26c9cd0d89d
+    //616263 => cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7
     
     uint8_t* v1 = (uint8_t *)malloc(3 * sizeof(uint8_t));
     int size  = 3;
@@ -305,5 +301,6 @@ int main(int argc, char const *argv[])
         printf("%.2x", *i);
     printf("\n");
 
+    free(v);
     return 0;
 }

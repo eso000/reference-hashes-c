@@ -64,7 +64,15 @@ uint8_t* md5(uint8_t* message, int size) {
   uint32_t c0 = 0x98badcfe;  // C
   uint32_t d0 = 0x10325476;  // D
 
-  uint64_t ml = (uint64_t)(size * 8);
+  uint64_t ml = (uint64_t)size * 8;
+
+  uint8_t* padded = (uint8_t*)malloc((size + 1) * sizeof(uint8_t));
+
+  if (padded == NULL)
+    return NULL;
+
+  memcpy(padded, message, size);
+  message = padded;
 
   append(&message, &size, 0x80);
 
@@ -86,9 +94,6 @@ uint8_t* md5(uint8_t* message, int size) {
   message[size + 0] = (uint8_t)ml;
   size += 8;
 
-  for (uint8_t* p = &message[0]; p < &message[0] + size; p++)
-    printf("%.2x", *p);
-  printf("\n");
   uint32_t M[16];
   for (uint8_t* p = &message[0]; p < &message[0] + size; p = p + 64) {
     for(int j = 0; j<16;++j)
@@ -145,6 +150,7 @@ uint8_t* md5(uint8_t* message, int size) {
   v[13] = (uint8_t)(d0 >> 8);
   v[12] = (uint8_t)(d0);
 
+  free(message);
   return &v[0];
 }
 
@@ -162,6 +168,7 @@ int main(int argc, char const* argv[]) {
   for (uint8_t* i = &v2[0]; i < &v2[0] + 16; ++i)
     printf("%.2x", *i);
   printf("\n");
+  free(v2);
   free(v);
   return 0;
 }
