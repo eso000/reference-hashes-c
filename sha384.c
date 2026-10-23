@@ -284,12 +284,11 @@ uint8_t* sha384(uint8_t* message, int size)
     return v;
 }
 
-int main(int argc, char const *argv[])
+int main(void)
 {   
     //616263 => cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7
     
     uint8_t* v1 = (uint8_t *)malloc(3 * sizeof(uint8_t));
-    int size  = 3;
     v1[0] = (uint8_t)0x61;
     v1[1] = 0x62;
     v1[2] = 0x63;

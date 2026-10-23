@@ -154,9 +154,8 @@ uint8_t* md5(uint8_t* message, int size) {
   return &v[0];
 }
 
-int main(int argc, char const* argv[]) {
+int main(void) {
   // 616263 => 900150983cd24fb0d6963f7d28e17f72
-  uint8_t v1[] = {0x61, 0x62, 0x63};
   uint8_t* v = NULL;
   v = (uint8_t*)malloc(3 * sizeof(uint8_t));
   int size = 3;

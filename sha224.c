@@ -229,11 +229,10 @@ uint8_t* sha224(uint8_t* message, int size)
     return &v[0];       
 }
 
-int main(int argc, char const *argv[])
+int main(void)
 {   
     //616263 => 23097d223405d8228642a477bda255b32aadbce4bda0b3f7e36c9da7
     uint8_t* v = (uint8_t *)malloc(3 * sizeof(uint8_t));
-    int size  = 3;
     v[0] = (uint8_t)0x61;
     v[1] = 0x62;
     v[2] = 0x63;

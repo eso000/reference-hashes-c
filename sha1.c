@@ -216,7 +216,7 @@ for (uint8_t *p = &message[0]; p<&message[0]+size+left+8; p=p+64)
     return &v[0];
 }
 
-int main(int argc, char const *argv[])
+int main(void)
 {
     //616263 => a9993e364706816aba3e25717850c26c9cd0d89d
     uint8_t v1[] = {0x61, 0x62, 0x63};

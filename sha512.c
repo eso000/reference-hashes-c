@@ -303,12 +303,11 @@ uint8_t *sha512(uint8_t *message, int size)
     return v;        
 }
 
-int main(int argc, char const *argv[])
+int main(void)
 {
     //616263 => ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f
     
     uint8_t* v1 = (uint8_t *)malloc(3 * sizeof(uint8_t));
-    int size  = 3;
     v1[0] = (uint8_t)0x61;
     v1[1] = 0x62;
     v1[2] = 0x63;
