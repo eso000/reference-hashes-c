@@ -31,16 +31,6 @@
     g = (7 * i) % 16;   \
   }
 
-void append(uint8_t** p, int* size, uint8_t new) {
-  uint8_t* _temp = (uint8_t*)realloc(*p, (*size + 1) * sizeof(uint8_t));
-
-  if (_temp == NULL)
-    return;
-  *p = _temp;
-  (*p)[*size] = new;
-  *size += 1;
-}
-
 uint8_t* md5(uint8_t* message, int size) {
   int s[64] = {7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
                5, 9,  14, 20, 5, 9,  14, 20, 5, 9,  14, 20, 5, 9,  14, 20,
@@ -68,38 +58,23 @@ uint8_t* md5(uint8_t* message, int size) {
 
   uint64_t ml = (uint64_t)size * 8;
 
-  uint8_t* padded = (uint8_t*)malloc((size + 1) * sizeof(uint8_t));
+  size_t padded_length = ((size_t)size + 9 + 63) & ~(size_t)63;
+  uint8_t* padded = (uint8_t*)malloc(padded_length);
 
   if (padded == NULL)
     return NULL;
 
-  memcpy(padded, message, size);
-  message = padded;
+  memcpy(padded, message, (size_t)size);
+  padded[size] = 0x80;
+  memset(padded + size + 1, 0, padded_length - (size_t)size - 9);
 
-  append(&message, &size, 0x80);
-
-  while (size % 64 != 56)
-    append(&message, &size, 0);
-  uint8_t* _temp = (uint8_t*)realloc(message, (size + 8) * sizeof(uint8_t));
-
-  if (_temp == NULL)
-    return NULL;
-  message = _temp;
-
-  message[size + 7] = (ml >> 56);
-  message[size + 6] = (uint8_t)(ml >> 48);
-  message[size + 5] = (uint8_t)(ml >> 40);
-  message[size + 4] = (uint8_t)(ml >> 32);
-  message[size + 3] = (uint8_t)(ml >> 24);
-  message[size + 2] = (uint8_t)(ml >> 16);
-  message[size + 1] = (uint8_t)(ml >> 8);
-  message[size + 0] = (uint8_t)ml;
-  size += 8;
+  for (int i = 0; i < 8; ++i)
+    padded[padded_length - 8 + i] = (uint8_t)(ml >> (8 * i));
 
   uint32_t M[16];
-  for (uint8_t* p = &message[0]; p < &message[0] + size; p = p + 64) {
-    for(int j = 0; j<16;++j)
-      M[j] = (*(p + j*4 + 3) << 24) | (*(p + j*4 + 2) << 16) | (*(p + j*4 + 1) << 8) | (*(p + j*4 + 0));
+  for (uint8_t* p = padded; p < padded + padded_length; p = p + 64) {
+    for (int j = 0; j < 16; ++j)
+      M[j] = ((uint32_t)*(p + j*4 + 3) << 24) | ((uint32_t)*(p + j*4 + 2) << 16) | ((uint32_t)*(p + j*4 + 1) << 8) | (uint32_t)*(p + j*4 + 0);
 
     uint32_t A = a0;
     uint32_t B = b0;
@@ -132,6 +107,11 @@ uint8_t* md5(uint8_t* message, int size) {
 
   uint8_t* v = (uint8_t*)malloc(16 * sizeof(uint8_t));
 
+  if (v == NULL) {
+    free(padded);
+    return NULL;
+  }
+
   v[3] = (uint8_t)(a0 >> 24);
   v[2] = (uint8_t)(a0 >> 16);
   v[1] = (uint8_t)(a0 >> 8);
@@ -152,7 +132,7 @@ uint8_t* md5(uint8_t* message, int size) {
   v[13] = (uint8_t)(d0 >> 8);
   v[12] = (uint8_t)(d0);
 
-  free(message);
+  free(padded);
   return &v[0];
 }
 

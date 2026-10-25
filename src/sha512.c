@@ -228,7 +228,12 @@ uint8_t *sha512(uint8_t *message, int size)
     }
 
     uint8_t *v= (uint8_t*)malloc(64 * sizeof(uint8_t));
-    
+
+    if (v == NULL) {
+        free(message);
+        return NULL;
+    }
+
     v[ 0] = (uint8_t)(h0>>56);
     v[ 1] = (uint8_t)(h0>>48);
     v[ 2] = (uint8_t)(h0>>40);
