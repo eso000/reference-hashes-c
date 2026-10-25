@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: gcc
+            cc: gcc
+            cflags: -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror
+            target: check
+          - name: clang
+            cc: clang
+            cflags: -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror
+            target: check
+          - name: gcc + ASan/UBSan
+            cc: gcc
+            cflags: >-
+              -std=c11 -O1 -g -Wall -Wextra -Wpedantic -Werror
+              -fsanitize=address,undefined -fno-omit-frame-pointer
+            target: test-san test-cli
+          - name: clang + ASan/UBSan
+            cc: clang
+            cflags: >-
+              -std=c11 -O1 -g -Wall -Wextra -Wpedantic -Werror
+              -fsanitize=address,undefined -fno-omit-frame-pointer
+            target: test-san test-cli
+    steps:
+      - uses: actions/checkout@v4
+      # The Makefile defaults to gcc without overriding an explicit CC, so the
+      # matrix controls the compiler. `make check` runs the KATs, the OOM
+      # wrappers, UBSan and the CLI tests; the ASan rows run the sanitizer
+      # build and the CLI separately because wrapping malloc under ASan is
+      # fragile.
+      - name: Build and run tests
+        run: make CC="${{ matrix.cc }}" CFLAGS="${{ matrix.cflags }}" ${{ matrix.target }}
+        env:
+          ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+
+  valgrind:
+    name: Valgrind
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Valgrind
+        run: sudo apt-get update && sudo apt-get install -y valgrind
+      - name: Run Valgrind
+        run: make CC=gcc CFLAGS="-std=c11 -O1 -g -Wall -Wextra -Wpedantic -Werror" test-valgrind
+
+  vectors:
+    name: Boundary vectors reproducible
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Regenerate into a temporary file and diff against the checked-in
+      # header. A mismatch fails without rewriting the working tree.
+      - name: Regenerate and compare
+        run: make vectors-check
+
+  differential:
+    name: Differential (OpenSSL)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare with OpenSSL
+        run: make CC=gcc CFLAGS="-std=c11 -O2 -Wall -Wextra -Wpedantic -Werror" test-differential
+
+  coverage:
+    name: Coverage (gcovr)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Build instrumented, then run the tests
+        run: make CC=gcc CFLAGS="-std=c11 -O0 -g -Wall -Wextra -Wpedantic --coverage" test
+      - name: Install gcovr
+        run: pip install gcovr
+      - name: Report
+        run: |
+          gcovr --root . --txt --print-summary
+          {
+            echo "### Coverage"
+            echo
+            echo '```'
+            gcovr --root . --txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
