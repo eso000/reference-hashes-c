@@ -11,13 +11,14 @@ typedef uint8_t* (*hash_fn)(uint8_t* message, int size);
 
 typedef struct {
   int length;
+  unsigned char fill;
   const char* expected;
 } boundary_vector;
 
 static int test_total = 0;
 static int test_failed = 0;
 
-static void encode_hex(const uint8_t* digest, size_t length, char* out) {
+static inline void encode_hex(const uint8_t* digest, size_t length, char* out) {
   static const char digits[] = "0123456789abcdef";
 
   for (size_t i = 0; i < length; ++i) {
@@ -27,9 +28,9 @@ static void encode_hex(const uint8_t* digest, size_t length, char* out) {
   out[2 * length] = '\0';
 }
 
-static void check_digest(const char* name, hash_fn fn, size_t digest_length,
-                         const uint8_t* message, size_t length,
-                         const char* expected) {
+static inline void check_digest(const char* name, hash_fn fn, size_t digest_length,
+                                const uint8_t* message, size_t length,
+                                const char* expected) {
   ++test_total;
 
   if (length > INT_MAX || digest_length > 64) {
@@ -70,7 +71,7 @@ static void check_digest(const char* name, hash_fn fn, size_t digest_length,
   free(input);
 }
 
-static int test_summary(const char* suite) {
+static inline int test_summary(const char* suite) {
   if (test_failed != 0) {
     printf("%s: %d of %d vectors failed\n", suite, test_failed, test_total);
     return 1;

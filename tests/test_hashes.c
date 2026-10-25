@@ -100,9 +100,9 @@ static void run_boundary_vectors(const char* name, hash_fn fn,
 
   for (size_t i = 0; i < count; ++i) {
     char vector_name[64];
-    memset(message, 'a', (size_t)vectors[i].length);
-    snprintf(vector_name, sizeof vector_name, "%s/boundary-%d", name,
-             vectors[i].length);
+    memset(message, vectors[i].fill, (size_t)vectors[i].length);
+    snprintf(vector_name, sizeof vector_name, "%s/boundary-%d-0x%02x", name,
+             vectors[i].length, vectors[i].fill);
     check_digest(vector_name, fn, digest_length, message,
                  (size_t)vectors[i].length, vectors[i].expected);
   }

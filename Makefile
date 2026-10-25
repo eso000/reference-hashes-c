@@ -6,21 +6,43 @@ CC := $(if $(filter default undefined,$(origin CC)),gcc,$(CC))
 CFLAGS ?= -std=c11 -O2
 
 BUILD_DIR := build
+SAN_BUILD_DIR := build-san
+UBSAN_BUILD_DIR := build-ubsan
 SRC_DIR := src
 INC_DIR := include
+TEST_DIR := tests
 ALGS := md5 sha1 sha224 sha256 sha384 sha512
 DEMOS := $(addprefix $(BUILD_DIR)/,$(ALGS))
 OBJS := $(addprefix $(BUILD_DIR)/,$(addsuffix .o,$(ALGS)))
 TEST := $(BUILD_DIR)/test_hashes
+TEST_OOM := $(BUILD_DIR)/test_oom
+
+SAN_FLAGS := -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined -fno-sanitize-recover=all
+UBSAN_FLAGS := -g -O1 -fsanitize=undefined -fsanitize-trap=undefined
+WRAP_ALLOC := -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=realloc -Wl,--wrap=free
 
 override CFLAGS += -Wall -Wextra -Wpedantic -I$(INC_DIR)
 
-.PHONY: all test vectors clean
+.PHONY: all test vectors test-san test-ubsan test-valgrind test-oom clean
 
 all: $(DEMOS) $(TEST)
 
 test: $(TEST)
 	./$(TEST)
+
+test-san:
+	$(MAKE) BUILD_DIR=$(SAN_BUILD_DIR) CFLAGS="$(CFLAGS) $(SAN_FLAGS)" $(SAN_BUILD_DIR)/test_hashes
+	ASAN_OPTIONS=detect_leaks=1:abort_on_error=1 \
+	UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
+	./$(SAN_BUILD_DIR)/test_hashes
+
+test-ubsan:
+	$(MAKE) BUILD_DIR=$(UBSAN_BUILD_DIR) CFLAGS="$(CFLAGS) $(UBSAN_FLAGS)" $(UBSAN_BUILD_DIR)/test_hashes
+	./$(UBSAN_BUILD_DIR)/test_hashes
+
+test-valgrind: $(TEST)
+	valgrind --error-exitcode=1 --leak-check=full --show-leak-kinds=all \
+	  --errors-for-leak-kinds=definite,indirect --track-origins=yes ./$(TEST)
 
 vectors:
 	./tests/gen_vectors.sh
@@ -36,8 +58,14 @@ $(OBJS): $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(INC_DIR)/hash.h | $(BUILD_DIR)
 $(DEMOS): $(BUILD_DIR)/%: $(SRC_DIR)/%.c $(INC_DIR)/hash.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $< -o $@
 
-$(TEST): tests/test_hashes.c tests/testutil.h tests/boundary_vectors.h $(INC_DIR)/hash.h $(OBJS) | $(BUILD_DIR)
-	$(CC) $(CFLAGS) tests/test_hashes.c $(OBJS) -o $@
+$(TEST): $(TEST_DIR)/test_hashes.c $(TEST_DIR)/testutil.h $(TEST_DIR)/boundary_vectors.h $(INC_DIR)/hash.h $(OBJS) | $(BUILD_DIR)
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_hashes.c $(OBJS) -o $@
+
+$(TEST_OOM): $(TEST_DIR)/test_oom.c $(TEST_DIR)/fail_alloc.c $(TEST_DIR)/fail_alloc.h $(OBJS) $(INC_DIR)/hash.h | $(BUILD_DIR)
+	$(CC) $(CFLAGS) $(TEST_DIR)/test_oom.c $(TEST_DIR)/fail_alloc.c $(OBJS) $(WRAP_ALLOC) -o $@
+
+test-oom: $(TEST_OOM)
+	./$(TEST_OOM)
 
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR) $(SAN_BUILD_DIR) $(UBSAN_BUILD_DIR)
