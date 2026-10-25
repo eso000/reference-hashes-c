@@ -68,7 +68,7 @@ $(CLI): examples/cli_demo.c $(OBJS) $(INC_DIR)/hash.h | $(BUILD_DIR)
 $(TEST): $(TEST_DIR)/test_hashes.c $(TEST_DIR)/testutil.h $(TEST_DIR)/boundary_vectors.h $(INC_DIR)/hash.h $(OBJS) | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(TEST_DIR)/test_hashes.c $(OBJS) -o $@
 
-$(TEST_OOM): $(TEST_DIR)/test_oom.c $(TEST_DIR)/fail_alloc.c $(TEST_DIR)/fail_alloc.h $(OBJS) $(INC_DIR)/hash.h | $(BUILD_DIR)
+$(TEST_OOM): $(TEST_DIR)/test_oom.c $(TEST_DIR)/testutil.h $(TEST_DIR)/fail_alloc.c $(TEST_DIR)/fail_alloc.h $(OBJS) $(INC_DIR)/hash.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(TEST_DIR)/test_oom.c $(TEST_DIR)/fail_alloc.c $(OBJS) $(WRAP_ALLOC) -o $@
 
 test-oom: $(TEST_OOM)

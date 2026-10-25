@@ -110,6 +110,43 @@ static void run_boundary_vectors(const char* name, hash_fn fn,
   free(message);
 }
 
+static void check_api_contract(const char* name, hash_fn fn,
+                               size_t digest_length, const char* empty_expected) {
+  uint8_t byte = 0;
+
+  ++test_total;
+  uint8_t* digest = fn(NULL, 0);
+  if (digest == NULL) {
+    printf("FAIL %s: NULL/0 returned NULL\n", name);
+    ++test_failed;
+  } else {
+    char got[129];
+    encode_hex(digest, digest_length, got);
+    if (strcmp(got, empty_expected) != 0) {
+      printf("FAIL %s: NULL/0\n  expected: %s\n  actual:   %s\n", name,
+             empty_expected, got);
+      ++test_failed;
+    }
+    free(digest);
+  }
+
+  ++test_total;
+  digest = fn(NULL, 1);
+  if (digest != NULL) {
+    printf("FAIL %s: NULL with non-zero size returned a digest\n", name);
+    free(digest);
+    ++test_failed;
+  }
+
+  ++test_total;
+  digest = fn(&byte, SIZE_MAX);
+  if (digest != NULL) {
+    printf("FAIL %s: SIZE_MAX input returned a digest\n", name);
+    free(digest);
+    ++test_failed;
+  }
+}
+
 static void run_million_a(const char* name, hash_fn fn, size_t digest_length,
                           const char* expected) {
   size_t length = 1000000;
@@ -157,6 +194,19 @@ int main(void) {
                 "9d0e1809716474cb086e834e310a4a1ced149e9c00f248527972cec5704c2a5b07b8b3dc38ecc4ebae97ddd87f3d8985");
   run_million_a("sha512/million-a", sha512, 64,
                 "e718483d0ce769644e2e42c7bc15b4638e1f98b13b2044285632a803afa973ebde0ff244877ea60a4cb0432ce577c31beb009c5c2c49aa2e4eadb217ad8cc09b");
+
+  check_api_contract("md5", md5, 16,
+                     "d41d8cd98f00b204e9800998ecf8427e");
+  check_api_contract("sha1", sha1, 20,
+                     "da39a3ee5e6b4b0d3255bfef95601890afd80709");
+  check_api_contract("sha224", sha224, 28,
+                     "d14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f");
+  check_api_contract("sha256", sha256, 32,
+                     "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+  check_api_contract("sha384", sha384, 48,
+                     "38b060a751ac96384cd9327eb1b1e36a21fdb71114be07434c0cc7bf63f6e1da274edebfe76f65fbd51ad2f14898b95b");
+  check_api_contract("sha512", sha512, 64,
+                     "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e");
 
   return test_summary("hash KATs");
 }

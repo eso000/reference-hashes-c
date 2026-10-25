@@ -22,7 +22,7 @@ static void check_failures(const char* name, hash_fn fn, size_t digest_length) {
     ++test_total;
 
     fail_alloc_arm(index);
-    uint8_t* digest = fn((uint8_t*)message, (int)sizeof message);
+    uint8_t* digest = fn(message, sizeof message);
     int triggered = fail_alloc_triggered();
     fail_alloc_disarm();
 

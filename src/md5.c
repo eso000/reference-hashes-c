@@ -30,14 +30,15 @@
     g = (7 * i) % 16;   \
   }
 
-uint8_t* md5(uint8_t* message, int size) {
-  int s[64] = {7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
-               5, 9,  14, 20, 5, 9,  14, 20, 5, 9,  14, 20, 5, 9,  14, 20,
-               4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
-               6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21};
+uint8_t* md5(const uint8_t* message, size_t size) {
+  static const int s[64] = {
+      7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
+      5, 9,  14, 20, 5, 9,  14, 20, 5, 9,  14, 20, 5, 9,  14, 20,
+      4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
+      6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21};
 
   // K[i] = floor(2**32 × abs(sin(i + 1)))
-  uint32_t K[64] = {
+  static const uint32_t K[64] = {
       0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a,
       0xa8304613, 0xfd469501, 0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be,
       0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821, 0xf61e2562, 0xc040b340,
@@ -55,17 +56,22 @@ uint8_t* md5(uint8_t* message, int size) {
   uint32_t c0 = 0x98badcfe;  // C
   uint32_t d0 = 0x10325476;  // D
 
-  uint64_t ml = (uint64_t)size * 8;
+  if ((message == NULL && size != 0) || size > UINT64_MAX / 8 ||
+      size > SIZE_MAX - 72)
+    return NULL;
 
-  size_t padded_length = ((size_t)size + 9 + 63) & ~(size_t)63;
+  uint64_t ml = (uint64_t)size << 3;
+
+  size_t padded_length = (size + 9 + 63) & ~(size_t)63;
   uint8_t* padded = (uint8_t*)malloc(padded_length);
 
   if (padded == NULL)
     return NULL;
 
-  memcpy(padded, message, (size_t)size);
+  if (size != 0)
+    memcpy(padded, message, size);
   padded[size] = 0x80;
-  memset(padded + size + 1, 0, padded_length - (size_t)size - 9);
+  memset(padded + size + 1, 0, padded_length - size - 9);
 
   for (int i = 0; i < 8; ++i)
     padded[padded_length - 8 + i] = (uint8_t)(ml >> (8 * i));
@@ -88,7 +94,7 @@ uint8_t* md5(uint8_t* message, int size) {
          step31
       else if (i <= 47)
           step47
-      else if (i <= 63)
+      else
         step63
 
       F = F + A + K[i] + M[g];

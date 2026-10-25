@@ -1,13 +1,13 @@
 #ifndef HASH_TESTUTIL_H
 #define HASH_TESTUTIL_H
 
-#include <limits.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-typedef uint8_t* (*hash_fn)(uint8_t* message, int size);
+typedef uint8_t* (*hash_fn)(const uint8_t* message, size_t size);
 
 typedef struct {
   int length;
@@ -29,12 +29,12 @@ static inline void encode_hex(const uint8_t* digest, size_t length, char* out) {
 }
 
 static inline void check_digest(const char* name, hash_fn fn, size_t digest_length,
-                                const uint8_t* message, size_t length,
+                                const uint8_t* source, size_t length,
                                 const char* expected) {
   ++test_total;
 
-  if (length > INT_MAX || digest_length > 64) {
-    printf("FAIL %s: unsupported vector size\n", name);
+  if (digest_length > 64) {
+    printf("FAIL %s: unsupported digest size\n", name);
     ++test_failed;
     return;
   }
@@ -45,9 +45,10 @@ static inline void check_digest(const char* name, hash_fn fn, size_t digest_leng
     ++test_failed;
     return;
   }
-  memcpy(input, message, length);
+  if (length != 0)
+    memcpy(input, source, length);
 
-  uint8_t* digest = fn(input, (int)length);
+  uint8_t* digest = fn(input, length);
   if (digest == NULL) {
     printf("FAIL %s: hash returned NULL\n", name);
     ++test_failed;
@@ -62,7 +63,7 @@ static inline void check_digest(const char* name, hash_fn fn, size_t digest_leng
     ++test_failed;
   }
 
-  if (memcmp(input, message, length) != 0) {
+  if (length != 0 && memcmp(input, source, length) != 0) {
     printf("FAIL %s: input buffer was modified\n", name);
     ++test_failed;
   }

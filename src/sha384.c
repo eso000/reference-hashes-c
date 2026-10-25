@@ -119,7 +119,7 @@
         }
 
 
-uint8_t* sha384(uint8_t* message, int size)
+uint8_t* sha384(const uint8_t* message, size_t size)
 {   
     uint64_t h0 = 0xcbbb9d5dc1059ed8;
     uint64_t h1 = 0x629a292a367cd507;
@@ -130,7 +130,7 @@ uint8_t* sha384(uint8_t* message, int size)
     uint64_t h6 = 0xdb0c2e0d64f98fa7;
     uint64_t h7 = 0x47b5481dbefa4fa4;
     
-    uint64_t k[] ={
+    static const uint64_t k[] ={
         0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc, 0x3956c25bf348b538, 
         0x59f111f1b605d019, 0x923f82a4af194f9b, 0xab1c5ed5da6d8118, 0xd807aa98a3030242, 0x12835b0145706fbe, 
         0x243185be4ee4b28c, 0x550c7dc3d5ffb4e2, 0x72be5d74f27b896f, 0x80deb1fe3b1696b1, 0x9bdc06a725c71235, 
@@ -149,43 +149,33 @@ uint8_t* sha384(uint8_t* message, int size)
         0x431d67c49c100d4c, 0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817};
 
     
-    uint64_t ml = (uint64_t)size * 8;
-    
-    int left = 128 - (size+16)%128;
-
-    uint8_t *_temp = (uint8_t*)malloc((size+16+left) * sizeof(uint8_t));
-
-    if (_temp == NULL)
+    if ((message == NULL && size != 0) || size > SIZE_MAX - 144)
         return NULL;
 
-    memcpy(_temp, message, size);
-    message = _temp;
+    uint64_t bit_len_high = (uint64_t)size >> 61;
+    uint64_t bit_len_low = (uint64_t)size << 3;
 
-    message[size] = 0x80;
-    memset(message+size+1,0,left-1);
+    size_t left = 128 - ((size + 16) % 128);
 
-    message[size+left+ 0] = 0; 
-    message[size+left+ 1] = 0; 
-    message[size+left+ 2] = 0; 
-    message[size+left+ 3] = 0; 
-    message[size+left+ 4] = 0; 
-    message[size+left+ 5] = 0; 
-    message[size+left+ 6] = 0; 
-    message[size+left+ 7] = 0; 
+    uint8_t* padded = (uint8_t*)malloc(size + 16 + left);
 
-    message[size+left+ 8] = (ml>>56);
-    message[size+left+ 9] = (uint8_t)(ml>>48);
-    message[size+left+10] = (uint8_t)(ml>>40);
-    message[size+left+11] = (uint8_t)(ml>>32);
-    message[size+left+12] = (uint8_t)(ml>>24);
-    message[size+left+13] = (uint8_t)(ml>>16);
-    message[size+left+14] = (uint8_t)(ml>>8);
-    message[size+left+15] = (uint8_t)ml;
-    
+    if (padded == NULL)
+        return NULL;
+
+    if (size != 0)
+        memcpy(padded, message, size);
+
+    padded[size] = 0x80;
+    memset(padded + size + 1, 0, left - 1);
+
+    for (int i = 0; i < 8; ++i) {
+        padded[size + left + i] = (uint8_t)(bit_len_high >> (56 - 8 * i));
+        padded[size + left + 8 + i] = (uint8_t)(bit_len_low >> (56 - 8 * i));
+    }
 
     uint64_t  w[80];
 
-    for (uint8_t *p = &message[0]; p< &message[0]+size+left+16; p=p+128)
+    for (uint8_t *p = padded; p < padded + size + left + 16; p = p + 128)
     {               
         w[ 0]= ((uint64_t)*(p    )<<56)|((uint64_t)*(p+  1)<<48)|((uint64_t)*(p+  2)<<40)|((uint64_t)*(p+  3)<<32)|((uint64_t)*(p+  4)<<24)|((uint64_t)*(p+  5)<<16)|((uint64_t)*(p+  6)<<8)|(uint64_t)*(p+  7) ;
         w[ 1]= ((uint64_t)*(p+  8)<<56)|((uint64_t)*(p+  9)<<48)|((uint64_t)*(p+ 10)<<40)|((uint64_t)*(p+ 11)<<32)|((uint64_t)*(p+ 12)<<24)|((uint64_t)*(p+ 13)<<16)|((uint64_t)*(p+ 14)<<8)|(uint64_t)*(p+ 15) ;
@@ -228,7 +218,7 @@ uint8_t* sha384(uint8_t* message, int size)
     uint8_t *v= (uint8_t*)malloc(48 * sizeof(uint8_t));
 
     if (v == NULL) {
-        free(message);
+        free(padded);
         return NULL;
     }
 
@@ -286,6 +276,6 @@ uint8_t* sha384(uint8_t* message, int size)
     v[46] = (uint8_t)(h5>> 8);
     v[47] = (uint8_t)(h5    );
 
-    free(message);
+    free(padded);
     return v;
 }

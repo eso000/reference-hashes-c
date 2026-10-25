@@ -102,7 +102,7 @@
         }
 
 
-uint8_t* sha224(uint8_t* message, int size)
+uint8_t* sha224(const uint8_t* message, size_t size)
 {   
     uint32_t h0 = 0xc1059ed8;
     uint32_t h1 = 0x367cd507;
@@ -113,7 +113,7 @@ uint8_t* sha224(uint8_t* message, int size)
     uint32_t h6 = 0x64f98fa7;
     uint32_t h7 = 0xbefa4fa4;
     
-    uint32_t k[] ={
+    static const uint32_t k[] ={
         0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
         0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
         0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
@@ -125,30 +125,34 @@ uint8_t* sha224(uint8_t* message, int size)
 
 
     
-    uint64_t ml = (uint64_t)size * 8;
-    
-    int left = 64 - (size+8)%64;
-
-    uint8_t *_temp = (uint8_t*)malloc((size+8+left) * sizeof(uint8_t));
-    if (_temp == NULL)
+    if ((message == NULL && size != 0) || size > UINT64_MAX / 8 ||
+        size > SIZE_MAX - 72)
         return NULL;
-    memcpy(_temp, message, size);
-    message = _temp;
 
-    message[size] = 0x80;
-    memset(message+size+1,0,left-1);
-    message[size+left+0] = (ml>>56);
-    message[size+left+1] = (uint8_t)(ml>>48);
-    message[size+left+2] = (uint8_t)(ml>>40);
-    message[size+left+3] = (uint8_t)(ml>>32);
-    message[size+left+4] = (uint8_t)(ml>>24);
-    message[size+left+5] = (uint8_t)(ml>>16);
-    message[size+left+6] = (uint8_t)(ml>>8);
-    message[size+left+7] = (uint8_t)ml;
+    uint64_t ml = (uint64_t)size << 3;
+
+    size_t left = 64 - ((size + 8) % 64);
+
+    uint8_t* padded = (uint8_t*)malloc(size + 8 + left);
+    if (padded == NULL)
+        return NULL;
+    if (size != 0)
+        memcpy(padded, message, size);
+
+    padded[size] = 0x80;
+    memset(padded + size + 1, 0, left - 1);
+    padded[size + left + 0] = (uint8_t)(ml >> 56);
+    padded[size + left + 1] = (uint8_t)(ml >> 48);
+    padded[size + left + 2] = (uint8_t)(ml >> 40);
+    padded[size + left + 3] = (uint8_t)(ml >> 32);
+    padded[size + left + 4] = (uint8_t)(ml >> 24);
+    padded[size + left + 5] = (uint8_t)(ml >> 16);
+    padded[size + left + 6] = (uint8_t)(ml >> 8);
+    padded[size + left + 7] = (uint8_t)ml;
 
     uint32_t  w[80];
 
-    for (uint8_t *p = &message[0]; p< &message[0]+size+left+8; p=p+64)
+    for (uint8_t *p = padded; p < padded + size + left + 8; p = p + 64)
     {               
         
         w[ 0] = ((uint32_t)*(p   )<<24)|((uint32_t)*(p+ 1)<<16)|((uint32_t)*(p+ 2)<<8)|(*(p+ 3)); 
@@ -192,7 +196,7 @@ uint8_t* sha224(uint8_t* message, int size)
     uint8_t *v= (uint8_t*)malloc(28 * sizeof(uint8_t));
 
     if (v == NULL) {
-        free(message);
+        free(padded);
         return NULL;
     }
 
@@ -231,6 +235,6 @@ uint8_t* sha224(uint8_t* message, int size)
     v[26] = (uint8_t)(h6>> 8);
     v[27] = (uint8_t)(h6    );
 
-    free(message);
-    return &v[0];       
+    free(padded);
+    return &v[0];
 }

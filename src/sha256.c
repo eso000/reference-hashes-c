@@ -168,7 +168,7 @@
         }
 
 
-uint8_t* sha256(uint8_t* message, int size)
+uint8_t* sha256(const uint8_t* message, size_t size)
 {	
 	uint32_t h0 = 0x6a09e667;
     uint32_t h1 = 0xbb67ae85;
@@ -179,32 +179,36 @@ uint8_t* sha256(uint8_t* message, int size)
     uint32_t h6 = 0x1f83d9ab;
     uint32_t h7 = 0x5be0cd19;
 	
-    uint64_t ml = (uint64_t)size * 8;
-    
-    int left = 64 - (size+8)%64;
-
-    uint8_t *_temp = (uint8_t*)malloc((size+8+left) * sizeof(uint8_t));
-
-    if (_temp == NULL)
+    if ((message == NULL && size != 0) || size > UINT64_MAX / 8 ||
+        size > SIZE_MAX - 72)
         return NULL;
 
-    memcpy(_temp, message, size);
-    message = _temp;
+    uint64_t ml = (uint64_t)size << 3;
 
-    message[size] = 0x80;
-    memset(message+size+1,0,left-1);
-    message[size+left+0] = (ml>>56);
-    message[size+left+1] = (uint8_t)(ml>>48);
-    message[size+left+2] = (uint8_t)(ml>>40);
-    message[size+left+3] = (uint8_t)(ml>>32);
-    message[size+left+4] = (uint8_t)(ml>>24);
-    message[size+left+5] = (uint8_t)(ml>>16);
-    message[size+left+6] = (uint8_t)(ml>>8);
-    message[size+left+7] = (uint8_t)ml;
+    size_t left = 64 - ((size + 8) % 64);
+
+    uint8_t* padded = (uint8_t*)malloc(size + 8 + left);
+
+    if (padded == NULL)
+        return NULL;
+
+    if (size != 0)
+        memcpy(padded, message, size);
+
+    padded[size] = 0x80;
+    memset(padded + size + 1, 0, left - 1);
+    padded[size + left + 0] = (uint8_t)(ml >> 56);
+    padded[size + left + 1] = (uint8_t)(ml >> 48);
+    padded[size + left + 2] = (uint8_t)(ml >> 40);
+    padded[size + left + 3] = (uint8_t)(ml >> 32);
+    padded[size + left + 4] = (uint8_t)(ml >> 24);
+    padded[size + left + 5] = (uint8_t)(ml >> 16);
+    padded[size + left + 6] = (uint8_t)(ml >> 8);
+    padded[size + left + 7] = (uint8_t)ml;
 
     uint32_t  w[80];
 
-	for (uint8_t *p = &message[0]; p< &message[0]+size+left+8; p=p+64)
+	for (uint8_t *p = padded; p < padded + size + left + 8; p = p + 64)
 	{   	        
         
 
@@ -250,7 +254,7 @@ uint8_t* sha256(uint8_t* message, int size)
     uint8_t *v= (uint8_t*)malloc(32 * sizeof(uint8_t));
 
     if (v == NULL) {
-        free(message);
+        free(padded);
         return NULL;
     }
 
@@ -294,6 +298,6 @@ uint8_t* sha256(uint8_t* message, int size)
     v[30] = (uint8_t)(h7>> 8);
     v[31] = (uint8_t)(h7    );
 
-    free(message);
+    free(padded);
     return &v[0];       
 }

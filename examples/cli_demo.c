@@ -18,12 +18,12 @@
  */
 
 /*
- * The one-shot functions take an int length and add up to 144 padding bytes
- * in signed int arithmetic, so keep a margin below INT_MAX.
+ * The CLI buffers the whole input because the library exposes a one-shot API.
+ * Cap it to keep memory bounded; the library itself accepts size_t lengths.
  */
 #define MAX_MESSAGE ((size_t)(INT_MAX - 256))
 
-typedef uint8_t* (*hash_fn)(uint8_t* message, int size);
+typedef uint8_t* (*hash_fn)(const uint8_t* message, size_t size);
 
 struct algorithm {
   const char* name;
@@ -196,14 +196,14 @@ int main(int argc, char** argv) {
     return 2;
   }
 
-  uint8_t* message = NULL;
+  uint8_t* owned_message = NULL;
+  const uint8_t* message = NULL;
   size_t len = 0;
-  int owns_message = 0;
   const char* label = "stdin";
 
   if (opts.text != NULL) {
     /* hash.h documents that the input buffer is not modified. */
-    message = (uint8_t*)opts.text;
+    message = (const uint8_t*)opts.text;
     len = strlen(opts.text);
     label = "-s";
   } else {
@@ -218,7 +218,7 @@ int main(int argc, char** argv) {
       }
     }
 
-    enum read_result result = read_stream(in, &message, &len);
+    enum read_result result = read_stream(in, &owned_message, &len);
 
     if (in != stdin)
       fclose(in);
@@ -232,22 +232,20 @@ int main(int argc, char** argv) {
         perror(label);
       return 1;
     }
-    owns_message = 1;
+    message = owned_message;
   }
 
   if (len > MAX_MESSAGE) {
     fprintf(stderr, "%s: %s: input too large\n", argv[0], label);
-    if (owns_message)
-      free(message);
+    free(owned_message);
     return 1;
   }
 
-  uint8_t* digest = alg->fn(message, (int)len);
+  uint8_t* digest = alg->fn(message, len);
 
   if (digest == NULL) {
-    fprintf(stderr, "%s: %s: allocation failed\n", argv[0], alg->name);
-    if (owns_message)
-      free(message);
+    fprintf(stderr, "%s: %s: hashing failed\n", argv[0], alg->name);
+    free(owned_message);
     return 1;
   }
 
@@ -256,8 +254,7 @@ int main(int argc, char** argv) {
   putchar('\n');
 
   free(digest);
-  if (owns_message)
-    free(message);
+  free(owned_message);
 
   if (fflush(stdout) != 0) {
     perror("stdout");
