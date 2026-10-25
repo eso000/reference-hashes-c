@@ -13,6 +13,8 @@ INC_DIR := include
 TEST_DIR := tests
 ALGS := md5 sha1 sha224 sha256 sha384 sha512
 DEMO := $(BUILD_DIR)/sha1_demo
+CLI := $(BUILD_DIR)/cli_demo
+EXAMPLES := $(DEMO) $(CLI)
 OBJS := $(addprefix $(BUILD_DIR)/,$(addsuffix .o,$(ALGS)))
 TEST := $(BUILD_DIR)/test_hashes
 TEST_OOM := $(BUILD_DIR)/test_oom
@@ -23,9 +25,11 @@ WRAP_ALLOC := -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=realloc -Wl,--wrap=
 
 override CFLAGS += -Wall -Wextra -Wpedantic -I$(INC_DIR)
 
-.PHONY: all test vectors test-san test-ubsan test-valgrind test-oom clean
+.PHONY: all examples test vectors test-san test-ubsan test-valgrind test-oom clean
 
-all: $(DEMO) $(TEST)
+all: $(EXAMPLES) $(TEST)
+
+examples: $(EXAMPLES)
 
 test: $(TEST)
 	./$(TEST)
@@ -57,6 +61,9 @@ $(OBJS): $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(INC_DIR)/hash.h | $(BUILD_DIR)
 
 $(DEMO): examples/sha1_demo.c $(BUILD_DIR)/sha1.o $(INC_DIR)/hash.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $< $(BUILD_DIR)/sha1.o -o $@
+
+$(CLI): examples/cli_demo.c $(OBJS) $(INC_DIR)/hash.h | $(BUILD_DIR)
+	$(CC) $(CFLAGS) $< $(OBJS) -o $@
 
 $(TEST): $(TEST_DIR)/test_hashes.c $(TEST_DIR)/testutil.h $(TEST_DIR)/boundary_vectors.h $(INC_DIR)/hash.h $(OBJS) | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(TEST_DIR)/test_hashes.c $(OBJS) -o $@
