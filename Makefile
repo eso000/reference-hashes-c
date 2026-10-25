@@ -19,6 +19,7 @@ OBJS := $(addprefix $(BUILD_DIR)/,$(addsuffix .o,$(ALGS)))
 TEST := $(BUILD_DIR)/test_hashes
 TEST_OOM := $(BUILD_DIR)/test_oom
 TEST_CLI := $(TEST_DIR)/cli_tests.sh
+TEST_DIFF := $(TEST_DIR)/differential.sh
 
 SAN_FLAGS := -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined -fno-sanitize-recover=all
 UBSAN_FLAGS := -g -O1 -fsanitize=undefined -fsanitize-trap=undefined
@@ -26,7 +27,7 @@ WRAP_ALLOC := -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=realloc -Wl,--wrap=
 
 override CFLAGS += -Wall -Wextra -Wpedantic -I$(INC_DIR)
 
-.PHONY: all examples check test vectors test-san test-ubsan test-valgrind test-oom test-cli clean
+.PHONY: all examples check test vectors vectors-check test-san test-ubsan test-valgrind test-oom test-cli test-differential clean
 
 all: $(EXAMPLES) $(TEST)
 
@@ -57,6 +58,14 @@ test-valgrind: $(TEST)
 vectors:
 	./tests/gen_vectors.sh
 
+# Regenerate into a temporary file so a mismatch never rewrites the checked-in
+# header. Requires the GNU coreutils checksum tools.
+vectors-check:
+	@tmp=$$(mktemp) && trap 'rm -f "$$tmp"' EXIT && \
+	  ./tests/gen_vectors.sh "$$tmp" >/dev/null && \
+	  diff -u tests/boundary_vectors.h "$$tmp" && \
+	  echo "boundary vectors: reproducible"
+
 $(BUILD_DIR):
 	mkdir -p $@
 
@@ -82,6 +91,10 @@ test-oom: $(TEST_OOM)
 
 test-cli: $(CLI) $(TEST_CLI)
 	CLI="$(CLI)" ./$(TEST_CLI)
+
+# The OpenSSL oracle is optional locally, so this is not part of `make check`.
+test-differential: $(CLI) $(TEST_DIFF)
+	CLI="$(CLI)" ./$(TEST_DIFF)
 
 clean:
 	rm -rf $(BUILD_DIR) $(SAN_BUILD_DIR) $(UBSAN_BUILD_DIR)

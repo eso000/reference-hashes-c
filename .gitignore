@@ -4,6 +4,12 @@ a.out
 build/
 build-*/
 
+# coverage
+*.gcno
+*.gcda
+*.gcov
+coverage/
+
 # ctags
 tags
 tags.lock
