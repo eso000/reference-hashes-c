@@ -2,3 +2,18 @@ a.out
 *.o
 *.out
 build/
+
+# ctags
+tags
+tags.lock
+tags.temp
+
+# vim
+*.swp
+*.swo
+*.swn
+*.un~
+*~
+.viminfo
+.netrwhist
+Session.vim
