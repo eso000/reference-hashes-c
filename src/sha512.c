@@ -1,3 +1,5 @@
+#include "hash.h"
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -118,16 +120,16 @@
         }
 
 
-uint8_t* sha384(uint8_t* message, int size)
+uint8_t *sha512(uint8_t *message, int size)
 {   
-    uint64_t h0 = 0xcbbb9d5dc1059ed8;
-    uint64_t h1 = 0x629a292a367cd507;
-    uint64_t h2 = 0x9159015a3070dd17;
-    uint64_t h3 = 0x152fecd8f70e5939;
-    uint64_t h4 = 0x67332667ffc00b31;
-    uint64_t h5 = 0x8eb44a8768581511;
-    uint64_t h6 = 0xdb0c2e0d64f98fa7;
-    uint64_t h7 = 0x47b5481dbefa4fa4;
+    uint64_t h0 = 0x6a09e667f3bcc908;
+    uint64_t h1 = 0xbb67ae8584caa73b;
+    uint64_t h2 = 0x3c6ef372fe94f82b;
+    uint64_t h3 = 0xa54ff53a5f1d36f1;
+    uint64_t h4 = 0x510e527fade682d1;
+    uint64_t h5 = 0x9b05688c2b3e6c1f;
+    uint64_t h6 = 0x1f83d9abfb41bd6b;
+    uint64_t h7 = 0x5be0cd19137e2179;
     
     uint64_t k[] ={
         0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc, 0x3956c25bf348b538, 
@@ -203,6 +205,7 @@ uint8_t* sha384(uint8_t* message, int size)
         w[14]= ((uint64_t)*(p+112)<<56)|((uint64_t)*(p+113)<<48)|((uint64_t)*(p+114)<<40)|((uint64_t)*(p+115)<<32)|((uint64_t)*(p+116)<<24)|((uint64_t)*(p+117)<<16)|((uint64_t)*(p+118)<<8)|(uint64_t)*(p+119) ;
         w[15]= ((uint64_t)*(p+120)<<56)|((uint64_t)*(p+121)<<48)|((uint64_t)*(p+122)<<40)|((uint64_t)*(p+123)<<32)|((uint64_t)*(p+124)<<24)|((uint64_t)*(p+125)<<16)|((uint64_t)*(p+126)<<8)|(uint64_t)*(p+127) ;
         
+
         for (int i = 16; i< 80; ++i)
         {
             uint64_t s0 = (rotr64(w[i-15], 1)) ^ (rotr64(w[i-15], 8)) ^ (w[i-15] >> 7);
@@ -224,7 +227,7 @@ uint8_t* sha384(uint8_t* message, int size)
 
     }
 
-    uint8_t *v= (uint8_t*)malloc(48 * sizeof(uint8_t));
+    uint8_t *v= (uint8_t*)malloc(64 * sizeof(uint8_t));
     
     v[ 0] = (uint8_t)(h0>>56);
     v[ 1] = (uint8_t)(h0>>48);
@@ -280,23 +283,41 @@ uint8_t* sha384(uint8_t* message, int size)
     v[46] = (uint8_t)(h5>> 8);
     v[47] = (uint8_t)(h5    );
 
+    v[48] = (uint8_t)(h6>>56);
+    v[49] = (uint8_t)(h6>>48);
+    v[50] = (uint8_t)(h6>>40);
+    v[51] = (uint8_t)(h6>>32);
+    v[52] = (uint8_t)(h6>>24);
+    v[53] = (uint8_t)(h6>>16);
+    v[54] = (uint8_t)(h6>> 8);
+    v[55] = (uint8_t)(h6    );
+
+    v[56] = (uint8_t)(h7>>56);
+    v[57] = (uint8_t)(h7>>48);
+    v[58] = (uint8_t)(h7>>40);
+    v[59] = (uint8_t)(h7>>32);
+    v[60] = (uint8_t)(h7>>24);
+    v[61] = (uint8_t)(h7>>16);
+    v[62] = (uint8_t)(h7>> 8);
+    v[63] = (uint8_t)(h7    );
+
     free(message);
-    return v;
+    return v;        
 }
 
 int main(void)
-{   
-    //616263 => cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7
+{
+    //616263 => ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f
     
     uint8_t* v1 = (uint8_t *)malloc(3 * sizeof(uint8_t));
     v1[0] = (uint8_t)0x61;
     v1[1] = 0x62;
     v1[2] = 0x63;
 
-    uint8_t *v = sha384(v1, 3);
+    uint8_t *v = sha512(v1, 3);
     free(v1);
 
-    for (uint8_t *i = v; i < v+48; ++i)
+    for (uint8_t *i = v; i < v+64; ++i)
         printf("%.2x", *i);
     printf("\n");
 

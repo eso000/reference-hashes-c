@@ -1,3 +1,5 @@
+#include "hash.h"
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -6,10 +8,76 @@
 
 #define rotr32(xr,times) (((xr >> times)|(xr << (32-times))))
 
+#define k0 0x428a2f98
+#define k1 0x71374491
+#define k2 0xb5c0fbcf
+#define k3 0xe9b5dba5
+#define k4 0x3956c25b
+#define k5 0x59f111f1
+#define k6 0x923f82a4
+#define k7 0xab1c5ed5
+#define k8 0xd807aa98
+#define k9 0x12835b01
+#define k10 0x243185be
+#define k11 0x550c7dc3
+#define k12 0x72be5d74
+#define k13 0x80deb1fe
+#define k14 0x9bdc06a7
+#define k15 0xc19bf174
+#define k16 0xe49b69c1
+#define k17 0xefbe4786
+#define k18 0xfc19dc6
+#define k19 0x240ca1cc
+#define k20 0x2de92c6f
+#define k21 0x4a7484aa
+#define k22 0x5cb0a9dc
+#define k23 0x76f988da
+#define k24 0x983e5152
+#define k25 0xa831c66d
+#define k26 0xb00327c8
+#define k27 0xbf597fc7
+#define k28 0xc6e00bf3
+#define k29 0xd5a79147
+#define k30 0x6ca6351
+#define k31 0x14292967
+#define k32 0x27b70a85
+#define k33 0x2e1b2138
+#define k34 0x4d2c6dfc
+#define k35 0x53380d13
+#define k36 0x650a7354
+#define k37 0x766a0abb
+#define k38 0x81c2c92e
+#define k39 0x92722c85
+#define k40 0xa2bfe8a1
+#define k41 0xa81a664b
+#define k42 0xc24b8b70
+#define k43 0xc76c51a3
+#define k44 0xd192e819
+#define k45 0xd6990624
+#define k46 0xf40e3585
+#define k47 0x106aa070
+#define k48 0x19a4c116
+#define k49 0x1e376c08
+#define k50 0x2748774c
+#define k51 0x34b0bcb5
+#define k52 0x391c0cb3
+#define k53 0x4ed8aa4a
+#define k54 0x5b9cca4f
+#define k55 0x682e6ff3
+#define k56 0x748f82ee
+#define k57 0x78a5636f
+#define k58 0x84c87814
+#define k59 0x8cc70208
+#define k60 0x90befffa
+#define k61 0xa4506ceb
+#define k62 0xbef9a3f7
+#define k63 0xc67178f2
+
+
 #define round(i) {\
             uint32_t S1 = rotr32(e, 6) ^ rotr32(e, 11) ^ rotr32(e, 25);\
             uint32_t ch = (e & f) ^ ((~ e) & g);\
-            uint32_t temp1 = h + S1 + ch + k[i] + w[i];\
+            uint32_t temp1 = h + S1 + ch + k##i + w[i];\
             uint32_t S0 = rotr32(a, 2) ^ rotr32(a, 13) ^ rotr32(a, 22);\
             uint32_t maj = (a & b) ^ (a & c) ^ (b & c);\
             uint32_t temp2 = S0 + maj;\
@@ -101,36 +169,26 @@
         }
 
 
-uint8_t* sha224(uint8_t* message, int size)
-{   
-    uint32_t h0 = 0xc1059ed8;
-    uint32_t h1 = 0x367cd507;
-    uint32_t h2 = 0x3070dd17;
-    uint32_t h3 = 0xf70e5939;
-    uint32_t h4 = 0xffc00b31;
-    uint32_t h5 = 0x68581511;
-    uint32_t h6 = 0x64f98fa7;
-    uint32_t h7 = 0xbefa4fa4;
-    
-    uint32_t k[] ={
-        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
-
-
-    
+uint8_t* sha256(uint8_t* message, int size)
+{	
+	uint32_t h0 = 0x6a09e667;
+    uint32_t h1 = 0xbb67ae85;
+    uint32_t h2 = 0x3c6ef372;
+    uint32_t h3 = 0xa54ff53a;
+    uint32_t h4 = 0x510e527f;
+    uint32_t h5 = 0x9b05688c;
+    uint32_t h6 = 0x1f83d9ab;
+    uint32_t h7 = 0x5be0cd19;
+	
     uint64_t ml = (uint64_t)size * 8;
     
     int left = 64 - (size+8)%64;
 
     uint8_t *_temp = (uint8_t*)malloc((size+8+left) * sizeof(uint8_t));
+
     if (_temp == NULL)
         return NULL;
+
     memcpy(_temp, message, size);
     message = _temp;
 
@@ -147,9 +205,10 @@ uint8_t* sha224(uint8_t* message, int size)
 
     uint32_t  w[80];
 
-    for (uint8_t *p = &message[0]; p< &message[0]+size+left+8; p=p+64)
-    {               
+	for (uint8_t *p = &message[0]; p< &message[0]+size+left+8; p=p+64)
+	{   	        
         
+
         w[ 0] = (*(p   )<<24)|(*(p+ 1)<<16)|(*(p+ 2)<<8)|(*(p+ 3)); 
         w[ 1] = (*(p+ 4)<<24)|(*(p+ 5)<<16)|(*(p+ 6)<<8)|(*(p+ 7)); 
         w[ 2] = (*(p+ 8)<<24)|(*(p+ 9)<<16)|(*(p+10)<<8)|(*(p+11)); 
@@ -166,13 +225,14 @@ uint8_t* sha224(uint8_t* message, int size)
         w[13] = (*(p+52)<<24)|(*(p+53)<<16)|(*(p+54)<<8)|(*(p+55)); 
         w[14] = (*(p+56)<<24)|(*(p+57)<<16)|(*(p+58)<<8)|(*(p+59)); 
         w[15] = (*(p+60)<<24)|(*(p+61)<<16)|(*(p+62)<<8)|(*(p+63)); 
+        
 
         for (int i = 16; i< 64; ++i)
-        {
-            uint32_t s0 = (rotr32(w[i-15], 7)) ^ (rotr32(w[i-15], 18)) ^ (w[i-15] >> 3);
+	    {
+	        uint32_t s0 = (rotr32(w[i-15], 7)) ^ (rotr32(w[i-15], 18)) ^ (w[i-15] >> 3);
             uint32_t s1 = rotr32(w[i-2], 17) ^ rotr32(w[i-2], 19) ^ (w[i-2] >> 10);
             w[i] = w[i-16] + s0 + w[i-7] + s1;
-        }
+	    }
 
         uint32_t a = h0;
         uint32_t b = h1;
@@ -186,9 +246,9 @@ uint8_t* sha224(uint8_t* message, int size)
                 
         process512block
 
-    }
+	}
 
-    uint8_t *v= (uint8_t*)malloc(28 * sizeof(uint8_t));
+    uint8_t *v= (uint8_t*)malloc(32 * sizeof(uint8_t));
     
     v[ 0] = (uint8_t)(h0>>24);
     v[ 1] = (uint8_t)(h0>>16);
@@ -225,21 +285,26 @@ uint8_t* sha224(uint8_t* message, int size)
     v[26] = (uint8_t)(h6>> 8);
     v[27] = (uint8_t)(h6    );
 
+    v[28] = (uint8_t)(h7>>24);
+    v[29] = (uint8_t)(h7>>16);
+    v[30] = (uint8_t)(h7>> 8);
+    v[31] = (uint8_t)(h7    );
+
     free(message);
     return &v[0];       
 }
 
 int main(void)
 {   
-    //616263 => 23097d223405d8228642a477bda255b32aadbce4bda0b3f7e36c9da7
+    //616263 => ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
     uint8_t* v = (uint8_t *)malloc(3 * sizeof(uint8_t));
     v[0] = (uint8_t)0x61;
     v[1] = 0x62;
     v[2] = 0x63;
      
-    uint8_t* digest = sha224(v, 3);
+    uint8_t* digest = sha256(v, 3);
 
-    for (uint8_t *i = &digest[0]; i < &digest[0]+28; ++i)
+    for (uint8_t *i = &digest[0]; i < &digest[0]+32; ++i)
         printf("%.2x", *i);
     printf("\n");
 
@@ -247,4 +312,5 @@ int main(void)
     free(v);
 
     return 0;
+  
 }

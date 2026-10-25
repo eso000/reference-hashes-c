@@ -1,12 +1,6 @@
+#include "hash.h"
 #include "testutil.h"
 #include "boundary_vectors.h"
-
-uint8_t* md5(uint8_t* message, int size);
-uint8_t* sha1(uint8_t* message, int size);
-uint8_t* sha224(uint8_t* message, int size);
-uint8_t* sha256(uint8_t* message, int size);
-uint8_t* sha384(uint8_t* message, int size);
-uint8_t* sha512(uint8_t* message, int size);
 
 typedef struct {
   const char* name;

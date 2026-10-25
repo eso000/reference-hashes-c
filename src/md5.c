@@ -1,3 +1,5 @@
+#include "hash.h"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
