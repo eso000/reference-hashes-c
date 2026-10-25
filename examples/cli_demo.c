@@ -130,8 +130,7 @@ static const struct algorithm* find_algorithm(const char* name) {
 
 /*
  * Read the whole stream into a growable buffer. Works for regular files and
- * pipes, and returns a non-NULL buffer for empty input because the hash
- * functions call memcpy() even when the length is zero.
+ * pipes, and returns a non-NULL buffer for empty input. The caller frees it.
  */
 static enum read_result read_stream(FILE* in, uint8_t** out, size_t* out_len) {
   size_t cap = 64 * 1024;

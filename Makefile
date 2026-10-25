@@ -18,6 +18,7 @@ EXAMPLES := $(DEMO) $(CLI)
 OBJS := $(addprefix $(BUILD_DIR)/,$(addsuffix .o,$(ALGS)))
 TEST := $(BUILD_DIR)/test_hashes
 TEST_OOM := $(BUILD_DIR)/test_oom
+TEST_CLI := $(TEST_DIR)/cli_tests.sh
 
 SAN_FLAGS := -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined -fno-sanitize-recover=all
 UBSAN_FLAGS := -g -O1 -fsanitize=undefined -fsanitize-trap=undefined
@@ -25,11 +26,16 @@ WRAP_ALLOC := -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=realloc -Wl,--wrap=
 
 override CFLAGS += -Wall -Wextra -Wpedantic -I$(INC_DIR)
 
-.PHONY: all examples test vectors test-san test-ubsan test-valgrind test-oom clean
+.PHONY: all examples check test vectors test-san test-ubsan test-valgrind test-oom test-cli clean
 
 all: $(EXAMPLES) $(TEST)
 
 examples: $(EXAMPLES)
+
+# The main suite: known-answer tests, allocation failures, undefined-behaviour
+# checks and the CLI contract. test-san and test-valgrind stay separate because
+# they need host toolchain support (an ASan runtime and Valgrind respectively).
+check: test test-oom test-ubsan test-cli
 
 test: $(TEST)
 	./$(TEST)
@@ -73,6 +79,9 @@ $(TEST_OOM): $(TEST_DIR)/test_oom.c $(TEST_DIR)/testutil.h $(TEST_DIR)/fail_allo
 
 test-oom: $(TEST_OOM)
 	./$(TEST_OOM)
+
+test-cli: $(CLI) $(TEST_CLI)
+	CLI="$(CLI)" ./$(TEST_CLI)
 
 clean:
 	rm -rf $(BUILD_DIR) $(SAN_BUILD_DIR) $(UBSAN_BUILD_DIR)
