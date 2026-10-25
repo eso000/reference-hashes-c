@@ -1,6 +1,5 @@
 #include "hash.h"
 
-#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -221,23 +220,4 @@ for (uint8_t *p = &message[0]; p<&message[0]+size+left+8; p=p+64)
 
     free(message);
     return &v[0];
-}
-
-int main(void)
-{
-    //616263 => a9993e364706816aba3e25717850c26c9cd0d89d
-    uint8_t v1[] = {0x61, 0x62, 0x63};
-    uint8_t *v;
-    v = (uint8_t *)malloc(3 * sizeof(uint8_t));
-    int size  = 3;
-    memcpy(v,v1,3);
-
-    //std::vector<uint8_t> v({0x61, 0x62, 0x63});
-    uint8_t* digest = sha1(v, size);
-    for (uint8_t *i = &digest[0]; i < &digest[0]+20; ++i)
-        printf("%.2x", *i);
-    printf("\n");
-    free(digest);
-    free(v);
-    return 0;
 }

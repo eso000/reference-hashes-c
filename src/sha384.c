@@ -1,6 +1,5 @@
 #include "hash.h"
 
-#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -289,24 +288,4 @@ uint8_t* sha384(uint8_t* message, int size)
 
     free(message);
     return v;
-}
-
-int main(void)
-{   
-    //616263 => cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7
-    
-    uint8_t* v1 = (uint8_t *)malloc(3 * sizeof(uint8_t));
-    v1[0] = (uint8_t)0x61;
-    v1[1] = 0x62;
-    v1[2] = 0x63;
-
-    uint8_t *v = sha384(v1, 3);
-    free(v1);
-
-    for (uint8_t *i = v; i < v+48; ++i)
-        printf("%.2x", *i);
-    printf("\n");
-
-    free(v);
-    return 0;
 }

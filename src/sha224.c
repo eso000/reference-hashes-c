@@ -1,6 +1,5 @@
 #include "hash.h"
 
-#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -234,24 +233,4 @@ uint8_t* sha224(uint8_t* message, int size)
 
     free(message);
     return &v[0];       
-}
-
-int main(void)
-{   
-    //616263 => 23097d223405d8228642a477bda255b32aadbce4bda0b3f7e36c9da7
-    uint8_t* v = (uint8_t *)malloc(3 * sizeof(uint8_t));
-    v[0] = (uint8_t)0x61;
-    v[1] = 0x62;
-    v[2] = 0x63;
-     
-    uint8_t* digest = sha224(v, 3);
-
-    for (uint8_t *i = &digest[0]; i < &digest[0]+28; ++i)
-        printf("%.2x", *i);
-    printf("\n");
-
-    free(digest);
-    free(v);
-
-    return 0;
 }

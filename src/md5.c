@@ -1,7 +1,6 @@
 #include "hash.h"
 
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -134,22 +133,4 @@ uint8_t* md5(uint8_t* message, int size) {
 
   free(padded);
   return &v[0];
-}
-
-int main(void) {
-  // 616263 => 900150983cd24fb0d6963f7d28e17f72
-  uint8_t* v = NULL;
-  v = (uint8_t*)malloc(3 * sizeof(uint8_t));
-  int size = 3;
-  v[0] = 0x61;
-  v[1] = 0x62;
-  v[2] = 0x63;
-
-  uint8_t* v2 = md5(v, size);
-  for (uint8_t* i = &v2[0]; i < &v2[0] + 16; ++i)
-    printf("%.2x", *i);
-  printf("\n");
-  free(v2);
-  free(v);
-  return 0;
 }

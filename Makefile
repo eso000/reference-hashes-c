@@ -12,7 +12,7 @@ SRC_DIR := src
 INC_DIR := include
 TEST_DIR := tests
 ALGS := md5 sha1 sha224 sha256 sha384 sha512
-DEMOS := $(addprefix $(BUILD_DIR)/,$(ALGS))
+DEMO := $(BUILD_DIR)/sha1_demo
 OBJS := $(addprefix $(BUILD_DIR)/,$(addsuffix .o,$(ALGS)))
 TEST := $(BUILD_DIR)/test_hashes
 TEST_OOM := $(BUILD_DIR)/test_oom
@@ -25,7 +25,7 @@ override CFLAGS += -Wall -Wextra -Wpedantic -I$(INC_DIR)
 
 .PHONY: all test vectors test-san test-ubsan test-valgrind test-oom clean
 
-all: $(DEMOS) $(TEST)
+all: $(DEMO) $(TEST)
 
 test: $(TEST)
 	./$(TEST)
@@ -50,13 +50,13 @@ vectors:
 $(BUILD_DIR):
 	mkdir -p $@
 
-# Each source file still carries its demo main(), so the test objects rename
-# main to a per-algorithm name before linking them into one binary.
+# The implementations no longer carry demo main() functions, so the test
+# objects can be linked into one binary without renaming anything.
 $(OBJS): $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(INC_DIR)/hash.h | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -Dmain=$*_demo -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
-$(DEMOS): $(BUILD_DIR)/%: $(SRC_DIR)/%.c $(INC_DIR)/hash.h | $(BUILD_DIR)
-	$(CC) $(CFLAGS) $< -o $@
+$(DEMO): examples/sha1_demo.c $(BUILD_DIR)/sha1.o $(INC_DIR)/hash.h | $(BUILD_DIR)
+	$(CC) $(CFLAGS) $< $(BUILD_DIR)/sha1.o -o $@
 
 $(TEST): $(TEST_DIR)/test_hashes.c $(TEST_DIR)/testutil.h $(TEST_DIR)/boundary_vectors.h $(INC_DIR)/hash.h $(OBJS) | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(TEST_DIR)/test_hashes.c $(OBJS) -o $@
