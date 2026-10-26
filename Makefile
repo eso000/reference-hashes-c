@@ -71,7 +71,7 @@ $(BUILD_DIR):
 
 # The implementations no longer carry demo main() functions, so the test
 # objects can be linked into one binary without renaming anything.
-$(OBJS): $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(INC_DIR)/hash.h | $(BUILD_DIR)
+$(OBJS): $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(SRC_DIR)/hash_util.h $(INC_DIR)/hash.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(DEMO): examples/sha1_demo.c $(BUILD_DIR)/sha1.o $(INC_DIR)/hash.h | $(BUILD_DIR)

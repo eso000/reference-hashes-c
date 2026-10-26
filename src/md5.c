@@ -1,14 +1,9 @@
 #include "hash.h"
+#include "hash_util.h"
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-static inline uint32_t rotl32(uint32_t x, unsigned n)
-{
-  n &= 31u;
-  return n == 0u ? x : (x << n) | (x >> (32u - n));
-}
 
 static inline uint32_t md5_f(uint32_t b, uint32_t c, uint32_t d)
 {
@@ -39,22 +34,6 @@ static inline void md5_round(uint32_t *a, uint32_t *b, uint32_t *c, uint32_t *d,
   *c = *b;
   *b = *b + rotl32(*a + f + k + m, s);
   *a = temp;
-}
-
-static inline uint32_t load_le32(const uint8_t *p)
-{
-  return ((uint32_t)p[0]) |
-         ((uint32_t)p[1] << 8) |
-         ((uint32_t)p[2] << 16) |
-         ((uint32_t)p[3] << 24);
-}
-
-static inline void store_le32(uint8_t *p, uint32_t x)
-{
-  p[0] = (uint8_t)x;
-  p[1] = (uint8_t)(x >> 8);
-  p[2] = (uint8_t)(x >> 16);
-  p[3] = (uint8_t)(x >> 24);
 }
 
 /* Process one 64-byte block; `state` is updated in place. */

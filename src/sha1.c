@@ -1,16 +1,11 @@
 #include "hash.h"
+#include "hash_util.h"
 
 #include <stdint.h>
 #include <stdlib.h>
 
 #include <string.h>
 
-
-static inline uint32_t rotl32(uint32_t x, unsigned n)
-{
-    n &= 31u;
-    return n == 0u ? x : (x << n) | (x >> (32u - n));
-}
 
 static inline uint32_t sha1_f1(uint32_t b, uint32_t c, uint32_t d)
 {
@@ -38,22 +33,6 @@ static inline void sha1_round(uint32_t *a, uint32_t *b, uint32_t *c,
     *c = rotl32(*b, 30);
     *b = *a;
     *a = temp;
-}
-
-static inline uint32_t load_be32(const uint8_t *p)
-{
-    return ((uint32_t)p[0] << 24) |
-           ((uint32_t)p[1] << 16) |
-           ((uint32_t)p[2] << 8)  |
-           ((uint32_t)p[3]);
-}
-
-static inline void store_be32(uint8_t *p, uint32_t x)
-{
-    p[0] = (uint8_t)(x >> 24);
-    p[1] = (uint8_t)(x >> 16);
-    p[2] = (uint8_t)(x >> 8);
-    p[3] = (uint8_t)x;
 }
 
 /* Process one 64-byte block; `state` is updated in place. */
