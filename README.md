@@ -74,7 +74,7 @@ make clean      # remove the build directories
 | Target | What it runs |
 |---|---|
 | `make test` | 766 known-answer, boundary, million-`a` and API-contract checks |
-| `make test-oom` | 15 forced allocation-failure checks |
+| `make test-oom` | 14 forced allocation-failure checks |
 | `make test-ubsan` | the 766-check suite under UndefinedBehaviorSanitizer |
 | `make test-cli` | 31 golden-output and error-path checks for the CLI |
 
@@ -181,7 +181,7 @@ cc -std=c11 -O2 -Iinclude app.c src/sha256.c -o app
   and safe to call concurrently on different inputs.
 
 The memory cost is the returned digest plus a small fixed work buffer for MD5,
-SHA-1 and SHA-256; SHA-224, SHA-384 and SHA-512 currently allocate a padded
+SHA-1, SHA-224 and SHA-256; SHA-384 and SHA-512 currently allocate a padded
 copy. There is no streaming interface yet, so the whole message must fit in
 memory.
 
