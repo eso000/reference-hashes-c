@@ -4,34 +4,63 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define rotl32(xr, times) (((xr << times) | (xr >> (32 - times))))
+static inline uint32_t rotl32(uint32_t x, unsigned n)
+{
+  n &= 31u;
+  return n == 0u ? x : (x << n) | (x >> (32u - n));
+}
 
-#define step16                \
-  {                           \
-    F = (B & C) | ((~B) & D); \
-    g = i;                    \
-  }
+static inline uint32_t md5_f(uint32_t b, uint32_t c, uint32_t d)
+{
+  return (b & c) | ((~b) & d);
+}
 
-#define step31                \
-  {                           \
-    F = (D & B) | ((~D) & C); \
-    g = (5 * i + 1) % 16;     \
-  }
+static inline uint32_t md5_g(uint32_t b, uint32_t c, uint32_t d)
+{
+  return (d & b) | ((~d) & c);
+}
 
-#define step47            \
-  {                       \
-    F = B ^ C ^ D;        \
-    g = (3 * i + 5) % 16; \
-  }
+static inline uint32_t md5_h(uint32_t b, uint32_t c, uint32_t d)
+{
+  return b ^ c ^ d;
+}
 
-#define step63          \
-  {                     \
-    F = C ^ (B | (~D)); \
-    g = (7 * i) % 16;   \
-  }
+static inline uint32_t md5_i(uint32_t b, uint32_t c, uint32_t d)
+{
+  return c ^ (b | (~d));
+}
 
-uint8_t* md5(const uint8_t* message, size_t size) {
-  static const int s[64] = {
+static inline void md5_round(uint32_t *a, uint32_t *b, uint32_t *c, uint32_t *d,
+                             uint32_t f, uint32_t k, uint32_t m, unsigned s)
+{
+  uint32_t temp = *d;
+
+  *d = *c;
+  *c = *b;
+  *b = *b + rotl32(*a + f + k + m, s);
+  *a = temp;
+}
+
+static inline uint32_t load_le32(const uint8_t *p)
+{
+  return ((uint32_t)p[0]) |
+         ((uint32_t)p[1] << 8) |
+         ((uint32_t)p[2] << 16) |
+         ((uint32_t)p[3] << 24);
+}
+
+static inline void store_le32(uint8_t *p, uint32_t x)
+{
+  p[0] = (uint8_t)x;
+  p[1] = (uint8_t)(x >> 8);
+  p[2] = (uint8_t)(x >> 16);
+  p[3] = (uint8_t)(x >> 24);
+}
+
+/* Process one 64-byte block; `state` is updated in place. */
+static void md5_process_block(uint32_t state[4], const uint8_t block[64])
+{
+  static const unsigned s[64] = {
       7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
       5, 9,  14, 20, 5, 9,  14, 20, 5, 9,  14, 20, 5, 9,  14, 20,
       4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
@@ -51,92 +80,91 @@ uint8_t* md5(const uint8_t* message, size_t size) {
       0xffeff47d, 0x85845dd1, 0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1,
       0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391};
 
-  uint32_t a0 = 0x67452301;  // A
-  uint32_t b0 = 0xefcdab89;  // B
-  uint32_t c0 = 0x98badcfe;  // C
-  uint32_t d0 = 0x10325476;  // D
+  uint32_t M[16];
+  for (unsigned j = 0; j < 16; ++j)
+    M[j] = load_le32(block + 4 * j);
+
+  uint32_t A = state[0];
+  uint32_t B = state[1];
+  uint32_t C = state[2];
+  uint32_t D = state[3];
+
+  for (unsigned i = 0; i < 16; ++i) {
+    uint32_t f = md5_f(B, C, D);
+    md5_round(&A, &B, &C, &D, f, K[i], M[i], s[i]);
+  }
+
+  for (unsigned i = 16; i < 32; ++i) {
+    uint32_t f = md5_g(B, C, D);
+    unsigned g = (5 * i + 1) % 16;
+    md5_round(&A, &B, &C, &D, f, K[i], M[g], s[i]);
+  }
+
+  for (unsigned i = 32; i < 48; ++i) {
+    uint32_t f = md5_h(B, C, D);
+    unsigned g = (3 * i + 5) % 16;
+    md5_round(&A, &B, &C, &D, f, K[i], M[g], s[i]);
+  }
+
+  for (unsigned i = 48; i < 64; ++i) {
+    uint32_t f = md5_i(B, C, D);
+    unsigned g = (7 * i) % 16;
+    md5_round(&A, &B, &C, &D, f, K[i], M[g], s[i]);
+  }
+
+  state[0] += A;
+  state[1] += B;
+  state[2] += C;
+  state[3] += D;
+}
+
+/*
+ * Finish the message: process the final `tail_len` bytes (0..63) plus
+ * MD5 padding. `state` is updated in place.
+ */
+static void md5_finish(uint32_t state[4], const uint8_t *tail,
+                       size_t tail_len, uint64_t bit_len)
+{
+  uint8_t block[128] = {0};
+  size_t final_len = tail_len < 56 ? 64 : 128;
+
+  if (tail_len != 0)
+    memcpy(block, tail, tail_len);
+
+  block[tail_len] = 0x80;
+  store_le32(block + final_len - 8, (uint32_t)bit_len);
+  store_le32(block + final_len - 4, (uint32_t)(bit_len >> 32));
+
+  for (size_t offset = 0; offset < final_len; offset += 64)
+    md5_process_block(state, block + offset);
+}
+
+uint8_t* md5(const uint8_t* message, size_t size) {
+  uint32_t state[4] = {
+      0x67452301u, 0xefcdab89u, 0x98badcfeu, 0x10325476u
+  };
 
   if ((message == NULL && size != 0) || size > UINT64_MAX / 8 ||
       size > SIZE_MAX - 72)
     return NULL;
 
-  uint64_t ml = (uint64_t)size << 3;
+  uint64_t bit_len = (uint64_t)size << 3;
+  size_t tail_len = size % 64;
+  size_t full_len = size - tail_len;
 
-  size_t padded_length = (size + 9 + 63) & ~(size_t)63;
-  uint8_t* padded = (uint8_t*)malloc(padded_length);
+  for (size_t offset = 0; offset < full_len; offset += 64)
+    md5_process_block(state, message + offset);
 
-  if (padded == NULL)
-    return NULL;
-
-  if (size != 0)
-    memcpy(padded, message, size);
-  padded[size] = 0x80;
-  memset(padded + size + 1, 0, padded_length - size - 9);
-
-  for (int i = 0; i < 8; ++i)
-    padded[padded_length - 8 + i] = (uint8_t)(ml >> (8 * i));
-
-  uint32_t M[16];
-  for (uint8_t* p = padded; p < padded + padded_length; p = p + 64) {
-    for (int j = 0; j < 16; ++j)
-      M[j] = ((uint32_t)*(p + j*4 + 3) << 24) | ((uint32_t)*(p + j*4 + 2) << 16) | ((uint32_t)*(p + j*4 + 1) << 8) | (uint32_t)*(p + j*4 + 0);
-
-    uint32_t A = a0;
-    uint32_t B = b0;
-    uint32_t C = c0;
-    uint32_t D = d0;
-
-    uint32_t F, g;
-    for (int i = 0; i < 64; ++i) {
-      if (i <= 15)
-        step16
-      else if (i <= 31)
-         step31
-      else if (i <= 47)
-          step47
-      else
-        step63
-
-      F = F + A + K[i] + M[g];
-      A = D;
-      D = C;
-      C = B;
-      B = B + rotl32(F, s[i]);
-    }
-
-    a0 = a0 + A;
-    b0 = b0 + B;
-    c0 = c0 + C;
-    d0 = d0 + D;
-  }
+  const uint8_t *tail = tail_len == 0 ? NULL : message + full_len;
+  md5_finish(state, tail, tail_len, bit_len);
 
   uint8_t* v = (uint8_t*)malloc(16 * sizeof(uint8_t));
 
-  if (v == NULL) {
-    free(padded);
+  if (v == NULL)
     return NULL;
-  }
 
-  v[3] = (uint8_t)(a0 >> 24);
-  v[2] = (uint8_t)(a0 >> 16);
-  v[1] = (uint8_t)(a0 >> 8);
-  v[0] = (uint8_t)(a0);
+  for (unsigned i = 0; i < 4; ++i)
+    store_le32(v + 4 * i, state[i]);
 
-  v[7] = (uint8_t)(b0 >> 24);
-  v[6] = (uint8_t)(b0 >> 16);
-  v[5] = (uint8_t)(b0 >> 8);
-  v[4] = (uint8_t)(b0);
-
-  v[11] = (uint8_t)(c0 >> 24);
-  v[10] = (uint8_t)(c0 >> 16);
-  v[9] = (uint8_t)(c0 >> 8);
-  v[8] = (uint8_t)(c0);
-
-  v[15] = (uint8_t)(d0 >> 24);
-  v[14] = (uint8_t)(d0 >> 16);
-  v[13] = (uint8_t)(d0 >> 8);
-  v[12] = (uint8_t)(d0);
-
-  free(padded);
   return &v[0];
 }
