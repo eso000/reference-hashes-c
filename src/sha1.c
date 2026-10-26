@@ -6,222 +6,148 @@
 #include <string.h>
 
 
-#define rotl32(xr,times) (((xr << times)|(xr >> (32-times))))
+static inline uint32_t rotl32(uint32_t x, unsigned n)
+{
+    n &= 31u;
+    return n == 0u ? x : (x << n) | (x >> (32u - n));
+}
 
-#define f1 f = (b & c) | ((~b) & d);
+static inline uint32_t sha1_f1(uint32_t b, uint32_t c, uint32_t d)
+{
+    return (b & c) | ((~b) & d);
+}
 
-#define f2 f = b ^ c ^ d;
+static inline uint32_t sha1_f2(uint32_t b, uint32_t c, uint32_t d)
+{
+    return b ^ c ^ d;
+}
 
-#define f3 f = (b & c) | (b & d) | (c & d);
+static inline uint32_t sha1_f3(uint32_t b, uint32_t c, uint32_t d)
+{
+    return (b & c) | (b & d) | (c & d);
+}
 
-#define end(i) temp = rotl32(a, 5) + f + e + k + w[i];\
-        e = d;\
-        d = c;\
-        c = rotl32(b,30);\
-        b = a;\
-        a = temp;
+static inline void sha1_round(uint32_t *a, uint32_t *b, uint32_t *c,
+                              uint32_t *d, uint32_t *e,
+                              uint32_t f, uint32_t k, uint32_t w)
+{
+    uint32_t temp = rotl32(*a, 5) + f + *e + k + w;
 
-#define process512block {\
-    uint32_t k = 0x5A827999;\
-    f1 end( 0)\
-    f1 end( 1)\
-    f1 end( 2)\
-    f1 end( 3)\
-    f1 end( 4)\
-    f1 end( 5)\
-    f1 end( 6)\
-    f1 end( 7)\
-    f1 end( 8)\
-    f1 end( 9)\
-    f1 end(10)\
-    f1 end(11)\
-    f1 end(12)\
-    f1 end(13)\
-    f1 end(14)\
-    f1 end(15)\
-    f1 end(16)\
-    f1 end(17)\
-    f1 end(18)\
-    f1 end(19)\
-    k = 0x6ED9EBA1;\
-    f2 end(20)\
-    f2 end(21)\
-    f2 end(22)\
-    f2 end(23)\
-    f2 end(24)\
-    f2 end(25)\
-    f2 end(26)\
-    f2 end(27)\
-    f2 end(28)\
-    f2 end(29)\
-    f2 end(30)\
-    f2 end(31)\
-    f2 end(32)\
-    f2 end(33)\
-    f2 end(34)\
-    f2 end(35)\
-    f2 end(36)\
-    f2 end(37)\
-    f2 end(38)\
-    f2 end(39)\
-    k = 0x8F1BBCDC;\
-    f3 end(40)\
-    f3 end(41)\
-    f3 end(42)\
-    f3 end(43)\
-    f3 end(44)\
-    f3 end(45)\
-    f3 end(46)\
-    f3 end(47)\
-    f3 end(48)\
-    f3 end(49)\
-    f3 end(50)\
-    f3 end(51)\
-    f3 end(52)\
-    f3 end(53)\
-    f3 end(54)\
-    f3 end(55)\
-    f3 end(56)\
-    f3 end(57)\
-    f3 end(58)\
-    f3 end(59)\
-    k = 0xCA62C1D6;\
-    f2 end(60)\
-    f2 end(61)\
-    f2 end(62)\
-    f2 end(63)\
-    f2 end(64)\
-    f2 end(65)\
-    f2 end(66)\
-    f2 end(67)\
-    f2 end(68)\
-    f2 end(69)\
-    f2 end(70)\
-    f2 end(71)\
-    f2 end(72)\
-    f2 end(73)\
-    f2 end(74)\
-    f2 end(75)\
-    f2 end(76)\
-    f2 end(77)\
-    f2 end(78)\
-    f2 end(79)\
-    h0 = h0 + a;\
-    h1 = h1 + b;\
-    h2 = h2 + c;\
-    h3 = h3 + d;\
-    h4 = h4 + e;\
+    *e = *d;
+    *d = *c;
+    *c = rotl32(*b, 30);
+    *b = *a;
+    *a = temp;
+}
+
+static inline uint32_t load_be32(const uint8_t *p)
+{
+    return ((uint32_t)p[0] << 24) |
+           ((uint32_t)p[1] << 16) |
+           ((uint32_t)p[2] << 8)  |
+           ((uint32_t)p[3]);
+}
+
+static inline void store_be32(uint8_t *p, uint32_t x)
+{
+    p[0] = (uint8_t)(x >> 24);
+    p[1] = (uint8_t)(x >> 16);
+    p[2] = (uint8_t)(x >> 8);
+    p[3] = (uint8_t)x;
+}
+
+/* Process one 64-byte block; `state` is updated in place. */
+static void sha1_process_block(uint32_t state[5], const uint8_t block[64])
+{
+    uint32_t w[80];
+
+    for (unsigned j = 0; j < 16; ++j)
+        w[j] = load_be32(block + 4 * j);
+
+    for (unsigned i = 16; i < 80; ++i)
+        w[i] = rotl32(w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16], 1);
+
+    uint32_t a = state[0];
+    uint32_t b = state[1];
+    uint32_t c = state[2];
+    uint32_t d = state[3];
+    uint32_t e = state[4];
+
+    for (unsigned i = 0; i < 20; ++i) {
+        uint32_t f = sha1_f1(b, c, d);
+        sha1_round(&a, &b, &c, &d, &e, f, 0x5A827999u, w[i]);
     }
+
+    for (unsigned i = 20; i < 40; ++i) {
+        uint32_t f = sha1_f2(b, c, d);
+        sha1_round(&a, &b, &c, &d, &e, f, 0x6ED9EBA1u, w[i]);
+    }
+
+    for (unsigned i = 40; i < 60; ++i) {
+        uint32_t f = sha1_f3(b, c, d);
+        sha1_round(&a, &b, &c, &d, &e, f, 0x8F1BBCDCu, w[i]);
+    }
+
+    for (unsigned i = 60; i < 80; ++i) {
+        uint32_t f = sha1_f2(b, c, d);
+        sha1_round(&a, &b, &c, &d, &e, f, 0xCA62C1D6u, w[i]);
+    }
+
+    state[0] += a;
+    state[1] += b;
+    state[2] += c;
+    state[3] += d;
+    state[4] += e;
+}
+
+/*
+ * Finish the message: process the final `tail_len` bytes (0..63) plus
+ * SHA-1 padding. `state` is updated in place.
+ */
+static void sha1_finish(uint32_t state[5], const uint8_t *tail,
+                        size_t tail_len, uint64_t bit_len)
+{
+    uint8_t block[128] = {0};
+    size_t final_len = tail_len < 56 ? 64 : 128;
+
+    if (tail_len != 0)
+        memcpy(block, tail, tail_len);
+
+    block[tail_len] = 0x80;
+    store_be32(block + final_len - 8, (uint32_t)(bit_len >> 32));
+    store_be32(block + final_len - 4, (uint32_t)bit_len);
+
+    for (size_t offset = 0; offset < final_len; offset += 64)
+        sha1_process_block(state, block + offset);
+}
 
 uint8_t* sha1(const uint8_t* message, size_t size)
 {
-uint32_t h0 = 0x67452301;
-uint32_t h1 = 0xEFCDAB89;
-uint32_t h2 = 0x98BADCFE;
-uint32_t h3 = 0x10325476;
-uint32_t h4 = 0xC3D2E1F0;
-
-
-    uint32_t temp;
-    uint32_t f;
+    uint32_t state[5] = {
+        0x67452301u, 0xEFCDAB89u, 0x98BADCFEu, 0x10325476u, 0xC3D2E1F0u
+    };
 
     if ((message == NULL && size != 0) || size > UINT64_MAX / 8 ||
         size > SIZE_MAX - 72)
         return NULL;
 
-    uint64_t ml = (uint64_t)size << 3;
+    uint64_t bit_len = (uint64_t)size << 3;
+    size_t tail_len = size % 64;
+    size_t full_len = size - tail_len;
 
-    size_t left = 64 - ((size + 8) % 64);
+    for (size_t offset = 0; offset < full_len; offset += 64)
+        sha1_process_block(state, message + offset);
 
-    uint8_t* padded = (uint8_t*)malloc(size + 8 + left);
+    const uint8_t *tail = tail_len == 0 ? NULL : message + full_len;
+    sha1_finish(state, tail, tail_len, bit_len);
 
-    if (padded == NULL)
+    uint8_t *v = (uint8_t*)malloc(20 * sizeof(uint8_t));
+
+    if (v == NULL)
         return NULL;
 
-    if (size != 0)
-        memcpy(padded, message, size);
+    for (unsigned i = 0; i < 5; ++i)
+        store_be32(v + 4 * i, state[i]);
 
-    padded[size] = 0x80;
-    memset(padded + size + 1, 0, left - 1);
-    padded[size + left + 0] = (uint8_t)(ml >> 56);
-    padded[size + left + 1] = (uint8_t)(ml >> 48);
-    padded[size + left + 2] = (uint8_t)(ml >> 40);
-    padded[size + left + 3] = (uint8_t)(ml >> 32);
-    padded[size + left + 4] = (uint8_t)(ml >> 24);
-    padded[size + left + 5] = (uint8_t)(ml >> 16);
-    padded[size + left + 6] = (uint8_t)(ml >> 8);
-    padded[size + left + 7] = (uint8_t)ml;
-
-    uint32_t  w[80];
-
-for (uint8_t *p = padded; p < padded + size + left + 8; p = p + 64)
-{
-
-        w[ 0] = ((uint32_t)*(p   )<<24)|((uint32_t)*(p+ 1)<<16)|((uint32_t)*(p+ 2)<<8)|(*(p+ 3));
-        w[ 1] = ((uint32_t)*(p+ 4)<<24)|((uint32_t)*(p+ 5)<<16)|((uint32_t)*(p+ 6)<<8)|(*(p+ 7));
-        w[ 2] = ((uint32_t)*(p+ 8)<<24)|((uint32_t)*(p+ 9)<<16)|((uint32_t)*(p+10)<<8)|(*(p+11));
-        w[ 3] = ((uint32_t)*(p+12)<<24)|((uint32_t)*(p+13)<<16)|((uint32_t)*(p+14)<<8)|(*(p+15));
-        w[ 4] = ((uint32_t)*(p+16)<<24)|((uint32_t)*(p+17)<<16)|((uint32_t)*(p+18)<<8)|(*(p+19));
-        w[ 5] = ((uint32_t)*(p+20)<<24)|((uint32_t)*(p+21)<<16)|((uint32_t)*(p+22)<<8)|(*(p+23));
-        w[ 6] = ((uint32_t)*(p+24)<<24)|((uint32_t)*(p+25)<<16)|((uint32_t)*(p+26)<<8)|(*(p+27));
-        w[ 7] = ((uint32_t)*(p+28)<<24)|((uint32_t)*(p+29)<<16)|((uint32_t)*(p+30)<<8)|(*(p+31));
-        w[ 8] = ((uint32_t)*(p+32)<<24)|((uint32_t)*(p+33)<<16)|((uint32_t)*(p+34)<<8)|(*(p+35));
-        w[ 9] = ((uint32_t)*(p+36)<<24)|((uint32_t)*(p+37)<<16)|((uint32_t)*(p+38)<<8)|(*(p+39));
-        w[10] = ((uint32_t)*(p+40)<<24)|((uint32_t)*(p+41)<<16)|((uint32_t)*(p+42)<<8)|(*(p+43));
-        w[11] = ((uint32_t)*(p+44)<<24)|((uint32_t)*(p+45)<<16)|((uint32_t)*(p+46)<<8)|(*(p+47));
-        w[12] = ((uint32_t)*(p+48)<<24)|((uint32_t)*(p+49)<<16)|((uint32_t)*(p+50)<<8)|(*(p+51));
-        w[13] = ((uint32_t)*(p+52)<<24)|((uint32_t)*(p+53)<<16)|((uint32_t)*(p+54)<<8)|(*(p+55));
-        w[14] = ((uint32_t)*(p+56)<<24)|((uint32_t)*(p+57)<<16)|((uint32_t)*(p+58)<<8)|(*(p+59));
-        w[15] = ((uint32_t)*(p+60)<<24)|((uint32_t)*(p+61)<<16)|((uint32_t)*(p+62)<<8)|(*(p+63));
-
-        for (int i = 16; i< 80; ++i)
-    {
-        w[i] = w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16];
-        w[i] = rotl32(w[i],1);
-    }
-
-        uint32_t a = h0;
-        uint32_t b = h1;
-        uint32_t c = h2;
-        uint32_t d = h3;
-        uint32_t e = h4;
-
-
-        process512block
-
-}
-    uint8_t *v= (uint8_t*)malloc(20 * sizeof(uint8_t));
-
-    if (v == NULL) {
-        free(padded);
-        return NULL;
-    }
-
-    v[ 0] = (uint8_t)(h0>>24);
-    v[ 1] = (uint8_t)(h0>>16);
-    v[ 2] = (uint8_t)(h0>> 8);
-    v[ 3] = (uint8_t)(h0    );
-
-    v[ 4] = (uint8_t)(h1>>24);
-    v[ 5] = (uint8_t)(h1>>16);
-    v[ 6] = (uint8_t)(h1>> 8);
-    v[ 7] = (uint8_t)(h1    );
-
-    v[ 8] = (uint8_t)(h2>>24);
-    v[ 9] = (uint8_t)(h2>>16);
-    v[10] = (uint8_t)(h2>> 8);
-    v[11] = (uint8_t)(h2    );
-
-    v[12] = (uint8_t)(h3>>24);
-    v[13] = (uint8_t)(h3>>16);
-    v[14] = (uint8_t)(h3>> 8);
-    v[15] = (uint8_t)(h3    );
-
-    v[16] = (uint8_t)(h4>>24);
-    v[17] = (uint8_t)(h4>>16);
-    v[18] = (uint8_t)(h4>> 8);
-    v[19] = (uint8_t)(h4    );
-
-    free(padded);
     return &v[0];
 }

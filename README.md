@@ -74,7 +74,7 @@ make clean      # remove the build directories
 | Target | What it runs |
 |---|---|
 | `make test` | 766 known-answer, boundary, million-`a` and API-contract checks |
-| `make test-oom` | 18 forced allocation-failure checks |
+| `make test-oom` | 17 forced allocation-failure checks |
 | `make test-ubsan` | the 766-check suite under UndefinedBehaviorSanitizer |
 | `make test-cli` | 31 golden-output and error-path checks for the CLI |
 
@@ -180,8 +180,9 @@ cc -std=c11 -O2 -Iinclude app.c src/sha256.c -o app
 - **Concurrency.** There is no global mutable state; the functions are reentrant
   and safe to call concurrently on different inputs.
 
-The memory cost is one padded copy of the message plus the digest. There is no
-streaming interface yet, so the whole message must fit in memory.
+The memory cost is the returned digest plus a small fixed work buffer for SHA-1;
+the other algorithms currently allocate a padded copy. There is no streaming
+interface yet, so the whole message must fit in memory.
 
 ## Architecture
 
