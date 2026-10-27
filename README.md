@@ -188,12 +188,16 @@ in memory.
 
 ```text
 include/hash.h   public API and contract
-src/             one implementation per algorithm
+src/             public entry points and shared SHA-2 cores
 tests/           KATs, boundary vectors, OOM injection, CLI and differential tests
 examples/        minimal API demo and the command-line front end
 .github/         CI workflow
 build/           binaries and objects (make output; ignored)
 ```
+
+The SHA-2 family shares a 32-bit core between SHA-224/SHA-256 and a 64-bit core
+between SHA-384/SHA-512. Each public entry point supplies only its IV and digest
+length.
 
 Padding follows the standards: append `0x80`, zero-fill, then append the message
 length in bits as a big-endian integer. MD5, SHA-1, SHA-224 and SHA-256 use
@@ -253,9 +257,6 @@ differential, the vector reproducibility check, and a `gcovr` coverage report.
   protocol or password-storage library.
 - **Not constant-time and not audited.** See the security notice above.
 - **MD5 and SHA-1 are broken.** They are included for compatibility and study.
-- **The SHA-2 cores are duplicated.** `sha224.c`/`sha256.c` and
-  `sha384.c`/`sha512.c` currently carry separate copies of their compression
-  functions. Sharing a core per family is a planned refactor.
 - **No fuzzing target yet.** Line coverage is measured in CI with `gcovr`.
 - **No install target or packaged library yet.** Consumers compile the source
   files or the objects under `build/` directly.
