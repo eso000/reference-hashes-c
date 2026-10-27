@@ -11,10 +11,11 @@ UBSAN_BUILD_DIR := build-ubsan
 SRC_DIR := src
 INC_DIR := include
 TEST_DIR := tests
-ALGS := md5 sha1 sha224 sha256 sha384 sha512
+ALGS := md5 sha1 sha2_32 sha224 sha256 sha384 sha512
 DEMO := $(BUILD_DIR)/sha1_demo
 CLI := $(BUILD_DIR)/cli_demo
 EXAMPLES := $(DEMO) $(CLI)
+SRC_HEADERS := $(wildcard $(SRC_DIR)/*.h)
 OBJS := $(addprefix $(BUILD_DIR)/,$(addsuffix .o,$(ALGS)))
 TEST := $(BUILD_DIR)/test_hashes
 TEST_OOM := $(BUILD_DIR)/test_oom
@@ -71,7 +72,7 @@ $(BUILD_DIR):
 
 # The implementations no longer carry demo main() functions, so the test
 # objects can be linked into one binary without renaming anything.
-$(OBJS): $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(SRC_DIR)/hash_util.h $(INC_DIR)/hash.h | $(BUILD_DIR)
+$(OBJS): $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(SRC_HEADERS) $(INC_DIR)/hash.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(DEMO): examples/sha1_demo.c $(BUILD_DIR)/sha1.o $(INC_DIR)/hash.h | $(BUILD_DIR)
