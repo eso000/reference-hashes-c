@@ -28,7 +28,7 @@ WRAP_ALLOC := -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=realloc -Wl,--wrap=
 
 override CFLAGS += -Wall -Wextra -Wpedantic -I$(INC_DIR)
 
-.PHONY: all examples check test vectors vectors-check test-san test-ubsan test-valgrind test-oom test-cli test-differential clean
+.PHONY: all examples check test vectors vectors-check test-san test-ubsan test-valgrind test-oom test-cli test-differential clean format format-check
 
 all: $(EXAMPLES) $(TEST)
 
@@ -99,3 +99,12 @@ test-differential: $(CLI) $(TEST_DIFF)
 
 clean:
 	rm -rf $(BUILD_DIR) $(SAN_BUILD_DIR) $(UBSAN_BUILD_DIR)
+
+FORMAT_DIRS := src include tests examples
+FORMAT_FILES := $(shell find $(FORMAT_DIRS) -type f \( -name '*.c' -o -name '*.h' \) 2>/dev/null)
+
+format:
+	clang-format -i $(FORMAT_FILES)
+
+format-check:
+	clang-format --dry-run --Werror $(FORMAT_FILES)

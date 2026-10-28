@@ -6,26 +6,16 @@
 
 #include <string.h>
 
+static inline uint32_t sha1_f1(uint32_t b, uint32_t c, uint32_t d) { return (b & c) | ((~b) & d); }
 
-static inline uint32_t sha1_f1(uint32_t b, uint32_t c, uint32_t d)
-{
-    return (b & c) | ((~b) & d);
-}
+static inline uint32_t sha1_f2(uint32_t b, uint32_t c, uint32_t d) { return b ^ c ^ d; }
 
-static inline uint32_t sha1_f2(uint32_t b, uint32_t c, uint32_t d)
-{
-    return b ^ c ^ d;
-}
-
-static inline uint32_t sha1_f3(uint32_t b, uint32_t c, uint32_t d)
-{
+static inline uint32_t sha1_f3(uint32_t b, uint32_t c, uint32_t d) {
     return (b & c) | (b & d) | (c & d);
 }
 
-static inline void sha1_round(uint32_t *a, uint32_t *b, uint32_t *c,
-                              uint32_t *d, uint32_t *e,
-                              uint32_t f, uint32_t k, uint32_t w)
-{
+static inline void sha1_round(uint32_t *a, uint32_t *b, uint32_t *c, uint32_t *d, uint32_t *e,
+                              uint32_t f, uint32_t k, uint32_t w) {
     uint32_t temp = rotl32(*a, 5) + f + *e + k + w;
 
     *e = *d;
@@ -36,8 +26,7 @@ static inline void sha1_round(uint32_t *a, uint32_t *b, uint32_t *c,
 }
 
 /* Process one 64-byte block; `state` is updated in place. */
-static void sha1_process_block(uint32_t state[5], const uint8_t block[64])
-{
+static void sha1_process_block(uint32_t state[5], const uint8_t block[64]) {
     uint32_t w[80];
 
     for (unsigned j = 0; j < 16; ++j)
@@ -83,9 +72,7 @@ static void sha1_process_block(uint32_t state[5], const uint8_t block[64])
  * Finish the message: process the final `tail_len` bytes (0..63) plus
  * SHA-1 padding. `state` is updated in place.
  */
-static void sha1_finish(uint32_t state[5], const uint8_t *tail,
-                        size_t tail_len, uint64_t bit_len)
-{
+static void sha1_finish(uint32_t state[5], const uint8_t *tail, size_t tail_len, uint64_t bit_len) {
     uint8_t block[128] = {0};
     size_t final_len = tail_len < 56 ? 64 : 128;
 
@@ -100,14 +87,10 @@ static void sha1_finish(uint32_t state[5], const uint8_t *tail,
         sha1_process_block(state, block + offset);
 }
 
-uint8_t* sha1(const uint8_t* message, size_t size)
-{
-    uint32_t state[5] = {
-        0x67452301u, 0xEFCDAB89u, 0x98BADCFEu, 0x10325476u, 0xC3D2E1F0u
-    };
+uint8_t *sha1(const uint8_t *message, size_t size) {
+    uint32_t state[5] = {0x67452301u, 0xEFCDAB89u, 0x98BADCFEu, 0x10325476u, 0xC3D2E1F0u};
 
-    if ((message == NULL && size != 0) || size > UINT64_MAX / 8 ||
-        size > SIZE_MAX - 72)
+    if ((message == NULL && size != 0) || size > UINT64_MAX / 8 || size > SIZE_MAX - 72)
         return NULL;
 
     uint64_t bit_len = (uint64_t)size << 3;
@@ -120,7 +103,7 @@ uint8_t* sha1(const uint8_t* message, size_t size)
     const uint8_t *tail = tail_len == 0 ? NULL : message + full_len;
     sha1_finish(state, tail, tail_len, bit_len);
 
-    uint8_t *v = (uint8_t*)malloc(20 * sizeof(uint8_t));
+    uint8_t *v = (uint8_t *)malloc(20 * sizeof(uint8_t));
 
     if (v == NULL)
         return NULL;

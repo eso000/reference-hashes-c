@@ -11,7 +11,7 @@
  * 64-bit words, or NULL on invalid arguments or allocation failure. The
  * caller owns the returned buffer. This is not part of the public API.
  */
-uint8_t *sha2_64_digest(const uint8_t *message, size_t size,
-                        const uint64_t iv[8], unsigned output_words);
+uint8_t *sha2_64_digest(const uint8_t *message, size_t size, const uint64_t iv[8],
+                        unsigned output_words);
 
 #endif

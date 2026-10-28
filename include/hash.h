@@ -36,11 +36,11 @@
  *   sha512  64 bytes
  */
 
-uint8_t* md5(const uint8_t* message, size_t size);
-uint8_t* sha1(const uint8_t* message, size_t size);
-uint8_t* sha224(const uint8_t* message, size_t size);
-uint8_t* sha256(const uint8_t* message, size_t size);
-uint8_t* sha384(const uint8_t* message, size_t size);
-uint8_t* sha512(const uint8_t* message, size_t size);
+uint8_t *md5(const uint8_t *message, size_t size);
+uint8_t *sha1(const uint8_t *message, size_t size);
+uint8_t *sha224(const uint8_t *message, size_t size);
+uint8_t *sha256(const uint8_t *message, size_t size);
+uint8_t *sha384(const uint8_t *message, size_t size);
+uint8_t *sha512(const uint8_t *message, size_t size);
 
 #endif

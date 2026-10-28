@@ -60,6 +60,17 @@ Regenerating or verifying the boundary vectors (`make vectors`,
 `sha1sum`, …). The OpenSSL differential (`make test-differential`) needs
 `openssl`. The main test suite needs neither.
 
+### Formatting
+
+The project uses [clang-format](https://clang.llvm.org/docs/ClangFormat.html) with the
+configuration in [`.clang-format`](.clang-format). Formatting is enforced in CI for C
+and header files in `src/`, `include/`, `tests/`, and `examples/`.
+
+```bash
+make format       # apply formatting in place
+make format-check # verify formatting (used by CI)
+```
+
 ## Build and test
 
 ```bash
