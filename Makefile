@@ -101,7 +101,7 @@ clean:
 	rm -rf $(BUILD_DIR) $(SAN_BUILD_DIR) $(UBSAN_BUILD_DIR)
 
 FORMAT_DIRS := src include tests examples
-FORMAT_FILES := $(shell find $(FORMAT_DIRS) -type f \( -name '*.c' -o -name '*.h' \) 2>/dev/null)
+FORMAT_FILES := $(shell find $(FORMAT_DIRS) -type f \( -name '*.c' -o -name '*.h' \) 2>/dev/null | grep -v 'tests/boundary_vectors.h')
 
 format:
 	clang-format -i $(FORMAT_FILES)
