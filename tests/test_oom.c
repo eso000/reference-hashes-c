@@ -12,9 +12,7 @@ static const uint8_t message[] = {
     0x00, 0x01, 0x02, 0x03, 0x7f, 0x80, 0x81, 0xfe, 0xff, 0x20, 0x00, 0x80, 0xff, 0xaa, 0x55, 0x10,
 };
 
-static void check_failures(const char *name, hash_fn fn, size_t digest_length) {
-    (void)digest_length;
-
+static void check_failures(const char *name, hash_fn fn) {
     long live_before = fail_alloc_live();
 
     for (long index = 0;; ++index) {
@@ -54,12 +52,12 @@ static void check_failures(const char *name, hash_fn fn, size_t digest_length) {
 }
 
 int main(void) {
-    check_failures("md5", md5, 16);
-    check_failures("sha1", sha1, 20);
-    check_failures("sha224", sha224, 28);
-    check_failures("sha256", sha256, 32);
-    check_failures("sha384", sha384, 48);
-    check_failures("sha512", sha512, 64);
+    check_failures("md5", md5);
+    check_failures("sha1", sha1);
+    check_failures("sha224", sha224);
+    check_failures("sha256", sha256);
+    check_failures("sha384", sha384);
+    check_failures("sha512", sha512);
 
     return test_summary("allocation failures");
 }
